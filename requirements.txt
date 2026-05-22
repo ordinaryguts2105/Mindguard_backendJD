@@ -1,0 +1,15 @@
+fastapi
+uvicorn[standard]
+python-socketio
+motor
+beanie
+pydantic
+pydantic-settings
+python-jose[cryptography]
+passlib[bcrypt]
+python-multipart
+cryptography
+httpx
+aiosmtplib
+jinja2
+python-dotenv
