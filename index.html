@@ -905,13 +905,20 @@ body::after{content:'';position:fixed;bottom:-200px;right:-200px;width:500px;hei
   </div>
 
   <div class="tabs">
-    <div class="tab active">All</div>
-    <div class="tab">Guardian Sent</div>
-    <div class="tab">Resolved</div>
-  </div>
+    <div class="tab active" onclick="filterAlerts('all')">All</div>
+
+<div class="tab" onclick="filterAlerts('unread')">
+    Guardian Sent
+</div>
+
+<div class="tab" onclick="filterAlerts('resolved')">
+    Resolved
+</div>
 
   <div style="display:flex;flex-direction:column;gap:12px;">
-    <div class="card" style="border-left:3px solid var(--warn);">
+    <div class="card alert-card"
+     data-status="unread"
+     style="border-left:3px solid var(--warn);">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
         <div style="display:flex;align-items:center;gap:8px;"><span style="font-size:18px">⚠️</span><div style="font-size:13px;font-weight:500;color:var(--warn)">Yellow Alert — Guardian Notified</div></div>
         <div style="display:flex;gap:8px;align-items:center;"><span style="font-size:11px;color:var(--text-muted)">Today, 7:00 AM</span><span class="badge b-warn">Unread</span></div>
@@ -920,16 +927,18 @@ body::after{content:'';position:fixed;bottom:-200px;right:-200px;width:500px;hei
       <div style="display:flex;gap:8px;"><button class="btn btn-ghost btn-sm">View Message Sent</button><button class="btn btn-ghost btn-sm">Mark Resolved</button></div>
     </div>
 
-    <div class="card" style="border-left:3px solid var(--accent2);">
+    <div class="card alert-card"
+     data-status="unread"
+     style="border-left:3px solid var(--accent2);">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
         <div style="display:flex;align-items:center;gap:8px;"><span style="font-size:18px">📊</span><div style="font-size:13px;font-weight:500;color:var(--accent2)">Weekly Report Sent</div></div>
         <div style="display:flex;gap:8px;align-items:center;"><span style="font-size:11px;color:var(--text-muted)">Today, 8:00 AM</span><span class="badge b-info">Unread</span></div>
       </div>
       <div style="font-size:13px;color:var(--text-dim);line-height:1.6;margin-bottom:12px;">Weekly summary report for Week 17 (Apr 19–25) was sent to Meena and Rajan. Average score: 72.3/100. Trend: Stable. No urgent flags. Recommendation included: "Plan a shared activity together this week."</div>
       <div style="display:flex;gap:8px;"><button class="btn btn-ghost btn-sm">View Report Sent</button><button class="btn btn-ghost btn-sm">Mark Read</button></div>
-    </div>
-
-    <div class="card" style="opacity:0.6;border-left:3px solid var(--border2);">
+    <div class="card alert-card"
+     data-status="resolved"
+     style="opacity:0.6;border-left:3px solid var(--border2);">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
         <div style="display:flex;align-items:center;gap:8px;"><span style="font-size:18px">✅</span><div style="font-size:13px;font-weight:500;color:var(--text-dim)">Alert Resolved — Score Recovered</div></div>
         <div style="display:flex;gap:8px;align-items:center;"><span style="font-size:11px;color:var(--text-muted)">Apr 22, 9:00 AM</span><span class="badge" style="background:var(--bg3);color:var(--text-muted)">Resolved</span></div>
@@ -937,7 +946,9 @@ body::after{content:'';position:fixed;bottom:-200px;right:-200px;width:500px;hei
       <div style="font-size:13px;color:var(--text-muted);line-height:1.6;">Score dropped to 61 on April 21 triggering a watch. Score recovered to 71 on April 22. Alert auto-resolved.</div>
     </div>
 
-    <div class="card" style="opacity:0.6;border-left:3px solid var(--border2);">
+    <div class="card alert-card"
+     data-status="resolved"
+     style="opacity:0.6;border-left:3px solid var(--border2);">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
         <div style="display:flex;align-items:center;gap:8px;"><span style="font-size:18px">📅</span><div style="font-size:13px;font-weight:500;color:var(--text-dim)">Monthly Report — March 2026</div></div>
         <div style="display:flex;gap:8px;align-items:center;"><span style="font-size:11px;color:var(--text-muted)">Apr 1, 8:00 AM</span><span class="badge" style="background:var(--bg3);color:var(--text-muted)">Read</span></div>
