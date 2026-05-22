@@ -1625,6 +1625,36 @@ if (titleEl) {
 }
     }
 }
+const alertCards = document.querySelectorAll(".alert-card");
+
+function filterAlerts(type) {
+
+    alertCards.forEach(card => {
+
+        const status = card.dataset.status;
+
+        if (type === "all") {
+            card.style.display = "block";
+        }
+
+        else if (status === type) {
+            card.style.display = "block";
+        }
+
+        else {
+            card.style.display = "none";
+        }
+    });
+}
+
+function resolveAlert(button) {
+
+    const card = button.closest(".alert-card");
+
+    card.dataset.status = "resolved";
+
+    card.style.opacity = "0.6";
+}
 
 connectBackend();
 </script>
