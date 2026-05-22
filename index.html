@@ -1584,16 +1584,19 @@ function initPage(pageId) {
 initPage('dashboard');
 async function connectBackend() {
     try {
-        const response = await fetch("https://mindguard-jd.onrender.com/");
-        const data = await response.json();
+        const username = localStorage.getItem("mindguardUser") || "JD";
 
-        console.log("Backend Connected:", data);
+const response = await fetch(`https://mindguard-jd.onrender.com/${username}`);
 
-        const titleEl = document.querySelector(".s-title");
+const data = await response.json();
+
+console.log(data);
+
+const titleEl = document.querySelector(".s-title");
 const scoreEl = document.querySelector(".sm-val");
 
 if (titleEl) {
-    titleEl.innerText = data.message;
+    titleEl.innerText = data.message || "Welcome back";
 }
 
 if (scoreEl) {
