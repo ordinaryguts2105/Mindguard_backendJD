@@ -1,0 +1,1766 @@
+╔══════════════════════════════════════════════════════════════════╗
+║           MINDGUARD — COMPLETE BACKEND ARCHITECTURE             ║
+║     FastAPI · MongoDB · Socket.io · JWT · Python 3.11+          ║
+╚══════════════════════════════════════════════════════════════════╝
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  PROJECT STRUCTURE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+mindguard-backend/
+├── app/
+│   ├── __init__.py
+│   ├── main.py                  # FastAPI app entry point + Socket.io
+│   ├── config.py                # Settings / env vars
+│   ├── database.py              # MongoDB Motor connection
+│   │
+│   ├── models/
+│   │   ├── user.py              # Pydantic schemas for User
+│   │   ├── guardian.py          # Guardian mapping schema
+│   │   ├── behaviour_log.py     # Daily behavioural log schema
+│   │   ├── alert.py             # Alert schema
+│   │   └── score.py             # Wellness score schema
+│   │
+│   ├── routers/
+│   │   ├── auth.py              # /auth — register, login, refresh
+│   │   ├── users.py             # /users — profile CRUD
+│   │   ├── behaviour.py         # /behaviour — ingest & retrieve logs
+│   │   ├── scores.py            # /scores — daily/weekly/monthly/yearly
+│   │   ├── guardians.py         # /guardians — manage guardian links
+│   │   ├── alerts.py            # /alerts — list, dismiss, history
+│   │   └── reports.py           # /reports — formatted report payloads
+│   │
+│   ├── services/
+│   │   ├── scoring_engine.py    # Wellness score calculation logic
+│   │   ├── alert_engine.py      # Alert threshold checks + dispatch
+│   │   ├── report_service.py    # Build daily/weekly/monthly/yearly reports
+│   │   ├── notification.py      # Email + push notification dispatch
+│   │   └── encryption.py        # AES-256 field-level encryption helpers
+│   │
+│   ├── core/
+│   │   ├── security.py          # JWT creation, verification, RBAC
+│   │   ├── dependencies.py      # FastAPI Depends injectors
+│   │   └── socket_manager.py    # Socket.io room/event manager
+│   │
+│   └── utils/
+│       ├── validators.py
+│       └── helpers.py
+│
+├── tests/
+│   ├── test_auth.py
+│   ├── test_scoring.py
+│   └── test_alerts.py
+│
+├── .env.example
+├── requirements.txt
+├── docker-compose.yml
+└── README.md
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  FILE: requirements.txt
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+fastapi==0.111.0
+uvicorn[standard]==0.29.0
+python-socketio==5.11.2
+motor==3.4.0                  # async MongoDB driver
+pymongo==4.7.2
+beanie==1.25.0                # ODM on top of Motor
+pydantic[email]==2.7.1
+pydantic-settings==2.2.1
+python-jose[cryptography]==3.3.0   # JWT
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.9
+cryptography==42.0.7           # AES-256 field encryption
+httpx==0.27.0
+aiosmtplib==3.0.1              # async email
+jinja2==3.1.4                  # email templates
+python-dotenv==1.0.1
+pytest==8.2.0
+pytest-asyncio==0.23.6
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  FILE: .env.example
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# App
+APP_NAME=MindGuard
+APP_VERSION=1.0.0
+DEBUG=false
+FRONTEND_URL=http://localhost:5173
+
+# Database
+MONGO_URI=mongodb://localhost:27017
+MONGO_DB_NAME=mindguard
+
+# JWT
+JWT_SECRET_KEY=your-very-secret-key-change-this-in-production
+JWT_ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+REFRESH_TOKEN_EXPIRE_DAYS=7
+
+# Encryption (AES-256 key — 32 bytes base64-encoded)
+FIELD_ENCRYPTION_KEY=base64encodedkeyhere==
+
+# Email (SMTP)
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=noreply@mindguard.app
+SMTP_PASSWORD=app-password-here
+EMAIL_FROM=MindGuard <noreply@mindguard.app>
+
+# Score thresholds
+YELLOW_ALERT_SCORE=45
+RED_ALERT_SCORE=20
+YELLOW_CONSECUTIVE_DAYS=3
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  FILE: app/config.py
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+from pydantic_settings import BaseSettings
+from functools import lru_cache
+
+class Settings(BaseSettings):
+    APP_NAME: str = "MindGuard"
+    APP_VERSION: str = "1.0.0"
+    DEBUG: bool = False
+    FRONTEND_URL: str = "http://localhost:5173"
+
+    MONGO_URI: str
+    MONGO_DB_NAME: str = "mindguard"
+
+    JWT_SECRET_KEY: str
+    JWT_ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+
+    FIELD_ENCRYPTION_KEY: str
+
+    SMTP_HOST: str = "smtp.gmail.com"
+    SMTP_PORT: int = 587
+    SMTP_USER: str
+    SMTP_PASSWORD: str
+    EMAIL_FROM: str = "MindGuard <noreply@mindguard.app>"
+
+    YELLOW_ALERT_SCORE: int = 45
+    RED_ALERT_SCORE: int = 20
+    YELLOW_CONSECUTIVE_DAYS: int = 3
+
+    class Config:
+        env_file = ".env"
+
+@lru_cache()
+def get_settings() -> Settings:
+    return Settings()
+
+settings = get_settings()
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  FILE: app/database.py
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+from motor.motor_asyncio import AsyncIOMotorClient
+from beanie import init_beanie
+from app.config import settings
+from app.models.user import User
+from app.models.guardian import GuardianMapping
+from app.models.behaviour_log import BehaviourLog
+from app.models.alert import Alert
+from app.models.score import DailyScore
+
+client: AsyncIOMotorClient = None
+
+async def connect_db():
+    global client
+    client = AsyncIOMotorClient(settings.MONGO_URI)
+    db = client[settings.MONGO_DB_NAME]
+    await init_beanie(
+        database=db,
+        document_models=[User, GuardianMapping, BehaviourLog, Alert, DailyScore]
+    )
+    print(f"✅ Connected to MongoDB: {settings.MONGO_DB_NAME}")
+
+async def close_db():
+    global client
+    if client:
+        client.close()
+        print("🔌 MongoDB connection closed")
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  FILE: app/models/user.py
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+from beanie import Document, Indexed
+from pydantic import EmailStr, Field
+from typing import Optional, Literal
+from datetime import datetime, date
+
+class User(Document):
+    email: Indexed(EmailStr, unique=True)
+    hashed_password: str
+    full_name: str
+    phone: Optional[str] = None
+    date_of_birth: Optional[date] = None
+    role: Literal["user", "guardian", "admin"] = "user"
+    work_hours_start: str = "09:00"
+    work_hours_end: str = "17:00"
+    wind_down_time: str = "22:30"
+    is_active: bool = True
+    is_verified: bool = False
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+    class Settings:
+        name = "users"
+        indexes = [["email"], ["role"]]
+
+# ── Pydantic request/response schemas ──────────────────────────
+
+from pydantic import BaseModel
+
+class UserRegister(BaseModel):
+    email: EmailStr
+    password: str
+    full_name: str
+    phone: Optional[str] = None
+    date_of_birth: Optional[date] = None
+
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
+
+class UserOut(BaseModel):
+    id: str
+    email: EmailStr
+    full_name: str
+    phone: Optional[str]
+    role: str
+    is_active: bool
+    created_at: datetime
+
+class UserUpdate(BaseModel):
+    full_name: Optional[str] = None
+    phone: Optional[str] = None
+    work_hours_start: Optional[str] = None
+    work_hours_end: Optional[str] = None
+    wind_down_time: Optional[str] = None
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  FILE: app/models/guardian.py
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+from beanie import Document
+from pydantic import BaseModel, EmailStr
+from typing import Optional, Literal, List
+from datetime import datetime
+from bson import ObjectId
+
+class GuardianMapping(Document):
+    user_id: str                        # The person being monitored
+    guardian_user_id: Optional[str]     # If guardian has a MindGuard account
+    guardian_name: str
+    guardian_email: EmailStr
+    guardian_phone: Optional[str] = None
+    relationship: Literal[
+        "mother","father","sibling","partner","friend","counsellor","other"
+    ] = "other"
+
+    # Report schedule
+    receives_daily: bool = False
+    receives_weekly: bool = True
+    receives_monthly: bool = True
+
+    # Alert levels
+    yellow_alerts: bool = True
+    red_alerts: bool = True
+
+    status: Literal["pending","active","paused","removed"] = "pending"
+    invite_token: Optional[str] = None
+    invited_at: datetime = datetime.utcnow()
+    accepted_at: Optional[datetime] = None
+    last_notified_at: Optional[datetime] = None
+
+    class Settings:
+        name = "guardian_mappings"
+
+class AddGuardianRequest(BaseModel):
+    guardian_name: str
+    guardian_email: EmailStr
+    guardian_phone: Optional[str] = None
+    relationship: str = "other"
+    receives_daily: bool = False
+    receives_weekly: bool = True
+    receives_monthly: bool = True
+    yellow_alerts: bool = True
+    red_alerts: bool = True
+
+class UpdateGuardianRequest(BaseModel):
+    receives_daily: Optional[bool] = None
+    receives_weekly: Optional[bool] = None
+    receives_monthly: Optional[bool] = None
+    yellow_alerts: Optional[bool] = None
+    red_alerts: Optional[bool] = None
+    status: Optional[Literal["active","paused"]] = None
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  FILE: app/models/behaviour_log.py
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+from beanie import Document
+from pydantic import BaseModel
+from typing import Optional, List
+from datetime import datetime, date
+
+class AppUsageEntry(BaseModel):
+    app_name: str
+    category: str               # social, music, news, gaming, wellness, productivity, etc.
+    duration_seconds: int
+    open_count: int
+
+class TypingEvent(BaseModel):
+    timestamp: datetime
+    wpm: float
+    backspace_ratio: float      # backspaces / total keystrokes
+
+class BehaviourLog(Document):
+    """
+    One document per user per day.
+    Behavioural data is field-encrypted before storage.
+    """
+    user_id: str
+    date: date
+
+    # ── App usage ──────────────────────────────────────────────
+    app_usage: List[AppUsageEntry] = []
+    total_screen_time_seconds: int = 0
+
+    # ── Typing signals ─────────────────────────────────────────
+    typing_events: List[TypingEvent] = []
+    avg_wpm: Optional[float] = None
+    avg_backspace_ratio: Optional[float] = None
+
+    # ── Time-of-day ────────────────────────────────────────────
+    first_use_hour: Optional[int] = None    # 0–23
+    last_use_hour: Optional[int] = None     # 0–23
+    late_night_minutes: int = 0             # minutes after midnight before 5am
+    usage_by_hour: List[int] = [0] * 24     # minutes per hour
+
+    # ── Self-report ────────────────────────────────────────────
+    self_mood: Optional[int] = None         # 1–5 (5=great, 1=tough)
+    self_notes: Optional[str] = None        # optional encrypted text note
+
+    # ── Metadata ───────────────────────────────────────────────
+    created_at: datetime = datetime.utcnow()
+    updated_at: datetime = datetime.utcnow()
+
+    class Settings:
+        name = "behaviour_logs"
+        indexes = [["user_id", "date"]]
+
+# ── Ingest request from mobile SDK / agent ─────────────────────
+
+class BehaviourIngestRequest(BaseModel):
+    date: date
+    app_usage: List[AppUsageEntry] = []
+    total_screen_time_seconds: int = 0
+    typing_events: List[TypingEvent] = []
+    late_night_minutes: int = 0
+    usage_by_hour: List[int] = [0] * 24
+    self_mood: Optional[int] = None
+    self_notes: Optional[str] = None
+
+class MoodUpdateRequest(BaseModel):
+    date: date
+    mood: int   # 1–5
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  FILE: app/models/score.py
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+from beanie import Document
+from pydantic import BaseModel
+from typing import List, Optional
+from datetime import date, datetime
+
+class ScoreComponent(BaseModel):
+    label: str
+    points: int       # negative = deduction, positive = bonus
+    category: str     # "late_night","typing","screen_time","wellness","mood" etc.
+
+class DailyScore(Document):
+    user_id: str
+    date: date
+    score: int                          # 0–100
+    status: str                         # stable / moderate / concerning / flourishing
+    components: List[ScoreComponent] = []
+    summary: str = ""
+    calculated_at: datetime = datetime.utcnow()
+
+    class Settings:
+        name = "daily_scores"
+        indexes = [["user_id", "date"]]
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  FILE: app/models/alert.py
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+from beanie import Document
+from pydantic import BaseModel
+from typing import Optional, Literal, List
+from datetime import datetime
+
+class Alert(Document):
+    user_id: str
+    level: Literal["yellow", "red", "info"]
+    title: str
+    message: str
+    is_read: bool = False
+    is_resolved: bool = False
+    guardian_ids_notified: List[str] = []
+    triggered_at: datetime = datetime.utcnow()
+    resolved_at: Optional[datetime] = None
+
+    class Settings:
+        name = "alerts"
+        indexes = [["user_id", "is_resolved"], ["user_id", "triggered_at"]]
+
+class AlertOut(BaseModel):
+    id: str
+    level: str
+    title: str
+    message: str
+    is_read: bool
+    is_resolved: bool
+    triggered_at: datetime
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  FILE: app/core/security.py
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+from datetime import datetime, timedelta
+from typing import Optional
+from jose import JWTError, jwt
+from passlib.context import CryptContext
+from app.config import settings
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+# ── Password ───────────────────────────────────────────────────
+
+def hash_password(plain: str) -> str:
+    return pwd_context.hash(plain)
+
+def verify_password(plain: str, hashed: str) -> bool:
+    return pwd_context.verify(plain, hashed)
+
+# ── JWT ────────────────────────────────────────────────────────
+
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+    to_encode = data.copy()
+    expire = datetime.utcnow() + (
+        expires_delta or timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    )
+    to_encode.update({"exp": expire, "type": "access"})
+    return jwt.encode(to_encode, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+
+def create_refresh_token(data: dict) -> str:
+    to_encode = data.copy()
+    expire = datetime.utcnow() + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
+    to_encode.update({"exp": expire, "type": "refresh"})
+    return jwt.encode(to_encode, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+
+def decode_token(token: str) -> Optional[dict]:
+    try:
+        return jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
+    except JWTError:
+        return None
+
+def create_guardian_invite_token(guardian_mapping_id: str) -> str:
+    """One-time invite token for guardian to accept the link."""
+    data = {"sub": guardian_mapping_id, "type": "guardian_invite"}
+    expire = datetime.utcnow() + timedelta(days=7)
+    return jwt.encode(
+        {**data, "exp": expire}, settings.JWT_SECRET_KEY,
+        algorithm=settings.JWT_ALGORITHM
+    )
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  FILE: app/core/dependencies.py
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from app.core.security import decode_token
+from app.models.user import User
+
+bearer_scheme = HTTPBearer()
+
+async def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)
+) -> User:
+    token = credentials.credentials
+    payload = decode_token(token)
+    if not payload or payload.get("type") != "access":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token"
+        )
+    user = await User.get(payload["sub"])
+    if not user or not user.is_active:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+    return user
+
+async def require_user_role(current_user: User = Depends(get_current_user)) -> User:
+    if current_user.role not in ("user", "admin"):
+        raise HTTPException(status_code=403, detail="User role required")
+    return current_user
+
+async def require_guardian_role(current_user: User = Depends(get_current_user)) -> User:
+    if current_user.role not in ("guardian", "admin"):
+        raise HTTPException(status_code=403, detail="Guardian role required")
+    return current_user
+
+async def require_admin(current_user: User = Depends(get_current_user)) -> User:
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin role required")
+    return current_user
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  FILE: app/core/socket_manager.py
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+import socketio
+from app.core.security import decode_token
+
+# Async Socket.IO server (ASGI-compatible)
+sio = socketio.AsyncServer(
+    async_mode="asgi",
+    cors_allowed_origins="*",   # tighten in production
+    logger=False,
+    engineio_logger=False
+)
+
+# ── Connection lifecycle ───────────────────────────────────────
+
+@sio.event
+async def connect(sid, environ, auth):
+    """Authenticate socket connection via JWT."""
+    token = (auth or {}).get("token")
+    if not token:
+        return False  # reject
+    payload = decode_token(token)
+    if not payload:
+        return False
+    user_id = payload.get("sub")
+    if not user_id:
+        return False
+    # Join a private room keyed by user_id
+    await sio.enter_room(sid, f"user_{user_id}")
+    await sio.save_session(sid, {"user_id": user_id, "role": payload.get("role","user")})
+    print(f"[Socket] {sid} connected — user {user_id}")
+
+@sio.event
+async def disconnect(sid):
+    print(f"[Socket] {sid} disconnected")
+
+# ── Emitter helpers ───────────────────────────────────────────
+
+async def emit_to_user(user_id: str, event: str, data: dict):
+    """Push an event to all sockets belonging to a user."""
+    await sio.emit(event, data, room=f"user_{user_id}")
+
+async def emit_score_update(user_id: str, score_data: dict):
+    await emit_to_user(user_id, "score_update", score_data)
+
+async def emit_alert(user_id: str, alert_data: dict):
+    await emit_to_user(user_id, "new_alert", alert_data)
+
+async def emit_guardian_notification(user_id: str, notif_data: dict):
+    await emit_to_user(user_id, "guardian_notified", notif_data)
+
+# ── Client-side events ────────────────────────────────────────
+
+@sio.event
+async def mood_update(sid, data):
+    """User reports mood via socket; triggers re-score."""
+    session = await sio.get_session(sid)
+    user_id = session["user_id"]
+    # Import here to avoid circular imports
+    from app.services.scoring_engine import recalculate_today
+    from datetime import date
+    updated_score = await recalculate_today(user_id, mood_override=data.get("mood"))
+    await emit_score_update(user_id, {"score": updated_score.score, "status": updated_score.status})
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  FILE: app/services/scoring_engine.py
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+"""
+SCORING ENGINE
+━━━━━━━━━━━━━━
+Base score: 100
+Deductions and bonuses are applied by category.
+
+Deductions:
+  Late-night usage  → –3 pts per 30-min block after midnight (max –12)
+  Erratic typing    → –3 pts if avg backspace ratio > 0.25 AND wpm > 70
+  Doomscrolling     → –2 pts per 30 min of news after 40 min/day (max –6)
+  High screen time  → –1 pt per 30 min above personal 30-day avg (max –8)
+  Compulsive opens  → –2 pts per app exceeding 20 opens/day (max –6)
+  Work-hour avoid   → –3 pts if >40% of work-hour usage is entertainment
+
+Bonuses:
+  Wellness app used → +5 pts (Breathwrk, Headspace, Calm, etc.)
+  MindGuard use     → +3 pts
+  Screen time < avg → +5 pts if >15% below 30-day avg
+  Low app opens     → +2 pts if <30 opens total
+  Positive mood     → +3 pts if self_mood >= 4
+  Creative app use  → +2 pts (Camera, journalling apps etc.)
+"""
+
+from datetime import date, datetime, timedelta
+from typing import Optional, List
+from app.models.behaviour_log import BehaviourLog
+from app.models.score import DailyScore, ScoreComponent
+from app.models.user import User
+
+WELLNESS_APPS = {"breathwrk", "headspace", "calm", "mindguard", "medito", "insight timer"}
+NEWS_APPS = {"news", "inshorts", "google news", "bbc", "cnn", "ndtv", "reuters"}
+ENTERTAINMENT_APPS = {"instagram", "tiktok", "youtube", "netflix", "spotify", "reels"}
+CREATIVE_APPS = {"camera", "vsco", "notion", "day one", "reflectly"}
+
+STATUS_MAP = [
+    (80, "flourishing"),
+    (65, "stable"),
+    (45, "moderate"),
+    (0,  "concerning"),
+]
+
+def _status(score: int) -> str:
+    for threshold, label in STATUS_MAP:
+        if score >= threshold:
+            return label
+    return "concerning"
+
+async def _avg_screen_time(user_id: str, days: int = 30) -> int:
+    """Return average daily screen time in seconds over past N days."""
+    since = date.today() - timedelta(days=days)
+    logs = await BehaviourLog.find(
+        BehaviourLog.user_id == user_id,
+        BehaviourLog.date >= since,
+        BehaviourLog.date < date.today()
+    ).to_list()
+    if not logs:
+        return 5 * 3600  # default: 5 hours
+    return int(sum(l.total_screen_time_seconds for l in logs) / len(logs))
+
+async def calculate_daily_score(log: BehaviourLog, user: User) -> DailyScore:
+    components: List[ScoreComponent] = []
+    score = 100
+
+    def deduct(pts: int, label: str, category: str):
+        nonlocal score
+        score = max(0, score - abs(pts))
+        components.append(ScoreComponent(label=label, points=-abs(pts), category=category))
+
+    def bonus(pts: int, label: str, category: str):
+        nonlocal score
+        score = min(100, score + abs(pts))
+        components.append(ScoreComponent(label=label, points=abs(pts), category=category))
+
+    # ── DEDUCTIONS ────────────────────────────────────────────
+
+    # 1. Late-night usage
+    if log.late_night_minutes > 0:
+        blocks = min(int(log.late_night_minutes / 30), 4)
+        deduct(blocks * 3, f"Late-night usage ({log.late_night_minutes} min after midnight)", "late_night")
+
+    # 2. Erratic typing
+    if log.avg_backspace_ratio and log.avg_wpm:
+        if log.avg_backspace_ratio > 0.25 and log.avg_wpm > 70:
+            deduct(3, f"Erratic typing detected (backspace ratio: {log.avg_backspace_ratio:.0%})", "typing")
+
+    # 3. Doomscrolling (news apps)
+    news_seconds = sum(
+        a.duration_seconds for a in log.app_usage
+        if any(n in a.app_name.lower() for n in NEWS_APPS)
+    )
+    if news_seconds > 40 * 60:
+        extra_blocks = min(int((news_seconds - 40 * 60) / (30 * 60)), 3)
+        deduct(extra_blocks * 2, f"Extended news reading ({news_seconds//60} min)", "doomscrolling")
+
+    # 4. High screen time vs personal average
+    avg_screen = await _avg_screen_time(str(log.user_id))
+    excess = log.total_screen_time_seconds - avg_screen
+    if excess > 0:
+        excess_blocks = min(int(excess / (30 * 60)), 8)
+        deduct(excess_blocks, f"Screen time {excess//60} min above your average", "screen_time")
+
+    # 5. Compulsive app opens
+    for app in log.app_usage:
+        if app.open_count > 20:
+            deduct(2, f"{app.app_name} opened {app.open_count}× (compulsive threshold)", "compulsive")
+
+    # 6. Work-hour avoidance (basic heuristic using app categories)
+    work_start = int(user.work_hours_start.split(":")[0])
+    work_end = int(user.work_hours_end.split(":")[0])
+    work_hours_usage = sum(log.usage_by_hour[work_start:work_end])
+    entertain_during_work = sum(
+        a.duration_seconds // 60 for a in log.app_usage
+        if a.category in ("social", "entertainment", "gaming")
+    )
+    if work_hours_usage > 0 and entertain_during_work / max(work_hours_usage, 1) > 0.40:
+        deduct(3, "Significant entertainment use during work hours", "work_avoidance")
+
+    # ── BONUSES ───────────────────────────────────────────────
+
+    # 1. Wellness apps
+    for app in log.app_usage:
+        if any(w in app.app_name.lower() for w in WELLNESS_APPS) and app.duration_seconds > 300:
+            bonus(5, f"Wellness app used: {app.app_name} ({app.duration_seconds//60} min)", "wellness")
+            break
+
+    # 2. MindGuard self-check
+    mindguard_use = any("mindguard" in a.app_name.lower() for a in log.app_usage)
+    if mindguard_use:
+        bonus(3, "MindGuard check-in completed", "wellness")
+
+    # 3. Low screen time
+    if log.total_screen_time_seconds < avg_screen * 0.85:
+        bonus(5, f"Screen time {int((1 - log.total_screen_time_seconds/avg_screen)*100)}% below your average", "screen_time")
+
+    # 4. Low total app opens
+    total_opens = sum(a.open_count for a in log.app_usage)
+    if total_opens < 30:
+        bonus(2, f"Low app-open count ({total_opens} opens today)", "mindful")
+
+    # 5. Positive mood self-report
+    if log.self_mood and log.self_mood >= 4:
+        bonus(3, f"Positive self-reported mood ({log.self_mood}/5)", "mood")
+
+    # 6. Creative apps used
+    for app in log.app_usage:
+        if any(c in app.app_name.lower() for c in CREATIVE_APPS):
+            bonus(2, f"Creative app used: {app.app_name}", "creative")
+            break
+
+    summary = _build_summary(score, components)
+    daily = DailyScore(
+        user_id=str(log.user_id),
+        date=log.date,
+        score=score,
+        status=_status(score),
+        components=components,
+        summary=summary,
+        calculated_at=datetime.utcnow()
+    )
+    # Upsert
+    existing = await DailyScore.find_one(
+        DailyScore.user_id == str(log.user_id),
+        DailyScore.date == log.date
+    )
+    if existing:
+        existing.score = score
+        existing.status = daily.status
+        existing.components = components
+        existing.summary = summary
+        existing.calculated_at = daily.calculated_at
+        await existing.save()
+        return existing
+    await daily.insert()
+    return daily
+
+def _build_summary(score: int, components: List[ScoreComponent]) -> str:
+    positives = [c.label for c in components if c.points > 0]
+    negatives = [c.label for c in components if c.points < 0]
+    if score >= 80:
+        return "A great day — your patterns reflect a balanced, mindful digital life."
+    elif score >= 65:
+        return f"A steady day. {negatives[0] if negatives else 'Minor flags'} pulled the score slightly. {positives[0] if positives else ''}"
+    elif score >= 45:
+        return f"Some patterns to watch today. Key concern: {negatives[0] if negatives else 'multiple flags'}."
+    else:
+        return "A challenging day digitally. Your guardian has been gently informed. You're not alone."
+
+async def recalculate_today(user_id: str, mood_override: Optional[int] = None) -> DailyScore:
+    today = date.today()
+    log = await BehaviourLog.find_one(
+        BehaviourLog.user_id == user_id,
+        BehaviourLog.date == today
+    )
+    if not log:
+        # Return minimal score if no data yet
+        return DailyScore(user_id=user_id, date=today, score=100, status="flourishing")
+    if mood_override:
+        log.self_mood = mood_override
+        await log.save()
+    user = await User.get(user_id)
+    return await calculate_daily_score(log, user)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  FILE: app/services/alert_engine.py
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+from datetime import date, timedelta
+from app.models.score import DailyScore
+from app.models.alert import Alert
+from app.models.guardian import GuardianMapping
+from app.config import settings
+from app.core.socket_manager import emit_alert, emit_guardian_notification
+from app.services.notification import send_guardian_email
+
+async def evaluate_alerts(user_id: str, today_score: DailyScore):
+    """Run after every score calculation. Checks thresholds and fires alerts."""
+
+    # ── Red alert: immediate single-day trigger ────────────────
+    if today_score.score <= settings.RED_ALERT_SCORE:
+        await _fire_alert(
+            user_id, "red",
+            "🔴 Urgent: Very Low Wellness Score",
+            f"JD's wellness score has dropped to {today_score.score}/100 today. "
+            f"This has triggered an urgent notification to their guardians."
+        )
+        return
+
+    # ── Yellow alert: N consecutive days below threshold ────────
+    since = date.today() - timedelta(days=settings.YELLOW_CONSECUTIVE_DAYS - 1)
+    recent_scores = await DailyScore.find(
+        DailyScore.user_id == user_id,
+        DailyScore.date >= since,
+        DailyScore.date <= date.today()
+    ).to_list()
+
+    if len(recent_scores) >= settings.YELLOW_CONSECUTIVE_DAYS:
+        all_low = all(s.score <= settings.YELLOW_ALERT_SCORE for s in recent_scores)
+        if all_low:
+            await _fire_alert(
+                user_id, "yellow",
+                "⚠️ Wellness Score Consistently Low",
+                f"JD's score has been at or below {settings.YELLOW_ALERT_SCORE} for "
+                f"{settings.YELLOW_CONSECUTIVE_DAYS} consecutive days. "
+                f"A gentle summary has been sent to their guardians."
+            )
+
+async def _fire_alert(user_id: str, level: str, title: str, message: str):
+    # Avoid duplicate unresolved alerts of same level on same day
+    today = date.today()
+    existing = await Alert.find_one(
+        Alert.user_id == user_id,
+        Alert.level == level,
+        Alert.is_resolved == False
+    )
+    if existing:
+        return  # already active
+
+    alert = Alert(user_id=user_id, level=level, title=title, message=message)
+
+    # Notify relevant guardians
+    guardians: list[GuardianMapping] = await GuardianMapping.find(
+        GuardianMapping.user_id == user_id,
+        GuardianMapping.status == "active"
+    ).to_list()
+
+    notified_ids = []
+    for g in guardians:
+        should_notify = (
+            (level == "red" and g.red_alerts) or
+            (level == "yellow" and g.yellow_alerts) or
+            level == "info"
+        )
+        if should_notify:
+            await send_guardian_email(g, level, title, message)
+            notified_ids.append(str(g.id))
+
+    alert.guardian_ids_notified = notified_ids
+    await alert.insert()
+
+    # Real-time push to user's dashboard
+    await emit_alert(user_id, {
+        "id": str(alert.id),
+        "level": level,
+        "title": title,
+        "message": message,
+        "triggered_at": alert.triggered_at.isoformat()
+    })
+
+    # Notify guardian's own dashboard if they have an account
+    for g in guardians:
+        if g.guardian_user_id:
+            await emit_guardian_notification(g.guardian_user_id, {
+                "user_id": user_id,
+                "level": level,
+                "title": title,
+                "message": message
+            })
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  FILE: app/services/report_service.py
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+from datetime import date, timedelta
+from typing import List, Optional
+from app.models.score import DailyScore
+from app.models.behaviour_log import BehaviourLog
+from app.models.guardian import GuardianMapping
+from app.services.notification import send_weekly_report_email, send_monthly_report_email
+
+async def get_daily_report(user_id: str, report_date: date) -> dict:
+    score = await DailyScore.find_one(
+        DailyScore.user_id == user_id,
+        DailyScore.date == report_date
+    )
+    log = await BehaviourLog.find_one(
+        BehaviourLog.user_id == user_id,
+        BehaviourLog.date == report_date
+    )
+    return {
+        "date": str(report_date),
+        "score": score.score if score else None,
+        "status": score.status if score else None,
+        "summary": score.summary if score else None,
+        "components": [c.dict() for c in score.components] if score else [],
+        "screen_time_seconds": log.total_screen_time_seconds if log else 0,
+        "app_usage": [a.dict() for a in log.app_usage] if log else [],
+        "usage_by_hour": log.usage_by_hour if log else [0]*24,
+        "late_night_minutes": log.late_night_minutes if log else 0,
+        "self_mood": log.self_mood if log else None,
+    }
+
+async def get_weekly_report(user_id: str, week_start: date) -> dict:
+    week_end = week_start + timedelta(days=6)
+    scores = await DailyScore.find(
+        DailyScore.user_id == user_id,
+        DailyScore.date >= week_start,
+        DailyScore.date <= week_end
+    ).sort("+date").to_list()
+
+    daily_scores = [{"date": str(s.date), "score": s.score, "status": s.status} for s in scores]
+    avg = round(sum(s.score for s in scores) / len(scores), 1) if scores else None
+    best = max(scores, key=lambda s: s.score) if scores else None
+    worst = min(scores, key=lambda s: s.score) if scores else None
+
+    return {
+        "week_start": str(week_start),
+        "week_end": str(week_end),
+        "average_score": avg,
+        "daily_scores": daily_scores,
+        "best_day": {"date": str(best.date), "score": best.score} if best else None,
+        "worst_day": {"date": str(worst.date), "score": worst.score} if worst else None,
+        "days_above_75": sum(1 for s in scores if s.score >= 75),
+        "days_below_45": sum(1 for s in scores if s.score < 45),
+    }
+
+async def get_monthly_report(user_id: str, year: int, month: int) -> dict:
+    from calendar import monthrange
+    _, days_in_month = monthrange(year, month)
+    month_start = date(year, month, 1)
+    month_end = date(year, month, days_in_month)
+    scores = await DailyScore.find(
+        DailyScore.user_id == user_id,
+        DailyScore.date >= month_start,
+        DailyScore.date <= month_end
+    ).sort("+date").to_list()
+
+    avg = round(sum(s.score for s in scores) / len(scores), 1) if scores else None
+    return {
+        "year": year, "month": month,
+        "average_score": avg,
+        "total_days_tracked": len(scores),
+        "days_above_75": sum(1 for s in scores if s.score >= 75),
+        "days_below_45": sum(1 for s in scores if s.score < 45),
+        "daily_scores": [{"date": str(s.date), "score": s.score} for s in scores],
+    }
+
+async def get_yearly_report(user_id: str, year: int) -> dict:
+    year_start = date(year, 1, 1)
+    year_end = date(year, 12, 31)
+    scores = await DailyScore.find(
+        DailyScore.user_id == user_id,
+        DailyScore.date >= year_start,
+        DailyScore.date <= year_end
+    ).sort("+date").to_list()
+
+    # Group by month
+    monthly: dict = {}
+    for s in scores:
+        key = s.date.month
+        monthly.setdefault(key, []).append(s.score)
+    monthly_avgs = [
+        {"month": m, "average": round(sum(v)/len(v), 1), "days": len(v)}
+        for m, v in sorted(monthly.items())
+    ]
+    overall_avg = round(sum(s.score for s in scores) / len(scores), 1) if scores else None
+    return {
+        "year": year,
+        "overall_average": overall_avg,
+        "monthly_averages": monthly_avgs,
+        "total_days_tracked": len(scores),
+    }
+
+async def dispatch_weekly_reports(user_id: str):
+    """Called by a scheduler every Sunday morning."""
+    today = date.today()
+    week_start = today - timedelta(days=today.weekday() + 1)  # last Monday
+    report = await get_weekly_report(user_id, week_start)
+    guardians = await GuardianMapping.find(
+        GuardianMapping.user_id == user_id,
+        GuardianMapping.status == "active",
+        GuardianMapping.receives_weekly == True
+    ).to_list()
+    for g in guardians:
+        await send_weekly_report_email(g, report)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  FILE: app/services/notification.py
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+import aiosmtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from app.config import settings
+
+async def _send_email(to_email: str, subject: str, html_body: str):
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = subject
+    msg["From"] = settings.EMAIL_FROM
+    msg["To"] = to_email
+    msg.attach(MIMEText(html_body, "html"))
+    try:
+        await aiosmtplib.send(
+            msg,
+            hostname=settings.SMTP_HOST,
+            port=settings.SMTP_PORT,
+            username=settings.SMTP_USER,
+            password=settings.SMTP_PASSWORD,
+            start_tls=True
+        )
+        print(f"[Email] Sent '{subject}' to {to_email}")
+    except Exception as e:
+        print(f"[Email] Failed to send to {to_email}: {e}")
+
+async def send_guardian_invite_email(guardian_email: str, guardian_name: str,
+                                      user_name: str, invite_url: str):
+    html = f"""
+    <div style="font-family:sans-serif;max-width:600px;margin:auto;">
+      <h2>You've been invited as a MindGuard Guardian</h2>
+      <p>Hi {guardian_name},</p>
+      <p><strong>{user_name}</strong> has added you as a trusted guardian on MindGuard —
+         a behavioural wellness platform that helps people maintain healthy digital habits.</p>
+      <p>As a guardian, you'll receive weekly wellness summaries and gentle alerts
+         if their score drops — with full privacy protection. You'll <strong>never</strong>
+         see their messages, app content, or personal data.</p>
+      <a href="{invite_url}" style="background:#7eb8f7;color:#0a0c10;padding:12px 24px;
+         border-radius:8px;text-decoration:none;font-weight:600;display:inline-block;margin:16px 0;">
+        Accept Guardian Invite
+      </a>
+      <p style="color:#888;font-size:12px;">This link expires in 7 days.</p>
+    </div>"""
+    await _send_email(guardian_email, f"MindGuard — {user_name} invited you as a Guardian", html)
+
+async def send_guardian_email(guardian, level: str, title: str, message: str):
+    colour = "#f87171" if level == "red" else "#fbbf24"
+    html = f"""
+    <div style="font-family:sans-serif;max-width:600px;margin:auto;">
+      <div style="background:{colour}22;border-left:4px solid {colour};padding:16px;border-radius:8px;">
+        <h3 style="color:{colour};margin:0 0 8px">{title}</h3>
+        <p style="color:#444;margin:0">{message}</p>
+      </div>
+      <p style="color:#888;font-size:11px;margin-top:24px;">
+        MindGuard · Privacy: you see summary information only.
+      </p>
+    </div>"""
+    await _send_email(guardian.guardian_email, f"MindGuard Alert: {title}", html)
+
+async def send_weekly_report_email(guardian, report: dict):
+    avg = report.get("average_score", "—")
+    html = f"""
+    <div style="font-family:sans-serif;max-width:600px;margin:auto;">
+      <h2>MindGuard Weekly Report</h2>
+      <p>Hi {guardian.guardian_name},</p>
+      <div style="text-align:center;padding:24px;background:#f0f4ff;border-radius:12px;margin:16px 0;">
+        <div style="font-size:48px;font-weight:700;color:#3b82f6">{avg}</div>
+        <div style="color:#666">Weekly Average Score / 100</div>
+      </div>
+      <ul>
+        <li>Best day: {report.get('best_day',{}).get('date','—')} ({report.get('best_day',{}).get('score','—')})</li>
+        <li>Days above 75: {report.get('days_above_75',0)}</li>
+        <li>Days below 45: {report.get('days_below_45',0)}</li>
+      </ul>
+      <p style="color:#888;font-size:11px;">MindGuard · Privacy-first wellness monitoring.</p>
+    </div>"""
+    await _send_email(guardian.guardian_email, "MindGuard Weekly Wellness Report", html)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  FILE: app/services/encryption.py
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+"""
+AES-256-GCM field-level encryption for sensitive stored fields
+(self_notes, typing_events detail, etc.)
+"""
+import base64
+import os
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from app.config import settings
+
+def _get_key() -> bytes:
+    return base64.b64decode(settings.FIELD_ENCRYPTION_KEY)
+
+def encrypt(plaintext: str) -> str:
+    key = _get_key()
+    aesgcm = AESGCM(key)
+    nonce = os.urandom(12)
+    ct = aesgcm.encrypt(nonce, plaintext.encode(), None)
+    return base64.b64encode(nonce + ct).decode()
+
+def decrypt(ciphertext: str) -> str:
+    key = _get_key()
+    aesgcm = AESGCM(key)
+    raw = base64.b64decode(ciphertext)
+    nonce, ct = raw[:12], raw[12:]
+    return aesgcm.decrypt(nonce, ct, None).decode()
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  FILE: app/routers/auth.py
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+from fastapi import APIRouter, HTTPException, status
+from app.models.user import User, UserRegister, UserLogin, UserOut
+from app.core.security import (
+    hash_password, verify_password,
+    create_access_token, create_refresh_token, decode_token
+)
+from datetime import datetime
+from pydantic import BaseModel
+
+router = APIRouter(prefix="/auth", tags=["Authentication"])
+
+class TokenResponse(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+    user: UserOut
+
+class RefreshRequest(BaseModel):
+    refresh_token: str
+
+@router.post("/register", response_model=TokenResponse, status_code=201)
+async def register(data: UserRegister):
+    if await User.find_one(User.email == data.email):
+        raise HTTPException(status_code=400, detail="Email already registered")
+    user = User(
+        email=data.email,
+        hashed_password=hash_password(data.password),
+        full_name=data.full_name,
+        phone=data.phone,
+        date_of_birth=data.date_of_birth,
+    )
+    await user.insert()
+    return _make_token_response(user)
+
+@router.post("/login", response_model=TokenResponse)
+async def login(data: UserLogin):
+    user = await User.find_one(User.email == data.email)
+    if not user or not verify_password(data.password, user.hashed_password):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    if not user.is_active:
+        raise HTTPException(status_code=403, detail="Account disabled")
+    return _make_token_response(user)
+
+@router.post("/refresh", response_model=TokenResponse)
+async def refresh_token(data: RefreshRequest):
+    payload = decode_token(data.refresh_token)
+    if not payload or payload.get("type") != "refresh":
+        raise HTTPException(status_code=401, detail="Invalid refresh token")
+    user = await User.get(payload["sub"])
+    if not user:
+        raise HTTPException(status_code=401, detail="User not found")
+    return _make_token_response(user)
+
+@router.post("/logout")
+async def logout():
+    # Stateless JWT — client simply discards tokens
+    # In production: add token to a Redis blocklist here
+    return {"detail": "Logged out successfully"}
+
+def _make_token_response(user: User) -> dict:
+    uid = str(user.id)
+    return {
+        "access_token": create_access_token({"sub": uid, "role": user.role}),
+        "refresh_token": create_refresh_token({"sub": uid}),
+        "user": UserOut(
+            id=uid, email=user.email, full_name=user.full_name,
+            phone=user.phone, role=user.role, is_active=user.is_active,
+            created_at=user.created_at
+        )
+    }
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  FILE: app/routers/behaviour.py
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+from fastapi import APIRouter, Depends
+from app.models.behaviour_log import BehaviourLog, BehaviourIngestRequest, MoodUpdateRequest
+from app.models.user import User
+from app.core.dependencies import require_user_role
+from app.services.scoring_engine import calculate_daily_score
+from app.services.alert_engine import evaluate_alerts
+from app.services.encryption import encrypt
+from app.core.socket_manager import emit_score_update
+from datetime import datetime
+import statistics
+
+router = APIRouter(prefix="/behaviour", tags=["Behaviour"])
+
+@router.post("/ingest")
+async def ingest_behaviour(
+    data: BehaviourIngestRequest,
+    current_user: User = Depends(require_user_role)
+):
+    """
+    Primary data ingest endpoint.
+    Called by the mobile SDK / browser agent when syncing usage data.
+    Automatically re-calculates the score and fires alert checks.
+    """
+    uid = str(current_user.id)
+
+    # Compute aggregate typing stats
+    avg_wpm, avg_backspace = None, None
+    if data.typing_events:
+        avg_wpm = statistics.mean(e.wpm for e in data.typing_events)
+        avg_backspace = statistics.mean(e.backspace_ratio for e in data.typing_events)
+
+    # Encrypt self_notes if present
+    encrypted_notes = encrypt(data.self_notes) if data.self_notes else None
+
+    # Upsert log
+    log = await BehaviourLog.find_one(
+        BehaviourLog.user_id == uid,
+        BehaviourLog.date == data.date
+    )
+    if log:
+        log.app_usage = data.app_usage
+        log.total_screen_time_seconds = data.total_screen_time_seconds
+        log.typing_events = data.typing_events
+        log.avg_wpm = avg_wpm
+        log.avg_backspace_ratio = avg_backspace
+        log.late_night_minutes = data.late_night_minutes
+        log.usage_by_hour = data.usage_by_hour
+        if data.self_mood:
+            log.self_mood = data.self_mood
+        if encrypted_notes:
+            log.self_notes = encrypted_notes
+        log.updated_at = datetime.utcnow()
+        await log.save()
+    else:
+        log = BehaviourLog(
+            user_id=uid, date=data.date,
+            app_usage=data.app_usage,
+            total_screen_time_seconds=data.total_screen_time_seconds,
+            typing_events=data.typing_events,
+            avg_wpm=avg_wpm, avg_backspace_ratio=avg_backspace,
+            late_night_minutes=data.late_night_minutes,
+            usage_by_hour=data.usage_by_hour,
+            self_mood=data.self_mood,
+            self_notes=encrypted_notes
+        )
+        await log.insert()
+
+    # Score + alert pipeline
+    score = await calculate_daily_score(log, current_user)
+    await evaluate_alerts(uid, score)
+
+    # Real-time push
+    await emit_score_update(uid, {"score": score.score, "status": score.status, "date": str(data.date)})
+
+    return {"score": score.score, "status": score.status, "components": [c.dict() for c in score.components]}
+
+@router.patch("/mood")
+async def update_mood(
+    data: MoodUpdateRequest,
+    current_user: User = Depends(require_user_role)
+):
+    uid = str(current_user.id)
+    log = await BehaviourLog.find_one(BehaviourLog.user_id == uid, BehaviourLog.date == data.date)
+    if log:
+        log.self_mood = data.mood
+        await log.save()
+        score = await calculate_daily_score(log, current_user)
+        await emit_score_update(uid, {"score": score.score, "status": score.status})
+        return {"score": score.score}
+    return {"detail": "No log found for this date"}
+
+@router.get("/log/{log_date}")
+async def get_log(log_date: str, current_user: User = Depends(require_user_role)):
+    from datetime import date
+    d = date.fromisoformat(log_date)
+    log = await BehaviourLog.find_one(
+        BehaviourLog.user_id == str(current_user.id),
+        BehaviourLog.date == d
+    )
+    if not log:
+        return None
+    return {
+        "date": str(log.date),
+        "total_screen_time_seconds": log.total_screen_time_seconds,
+        "app_usage": [a.dict() for a in log.app_usage],
+        "avg_wpm": log.avg_wpm,
+        "late_night_minutes": log.late_night_minutes,
+        "usage_by_hour": log.usage_by_hour,
+        "self_mood": log.self_mood,
+    }
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  FILE: app/routers/scores.py
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+from fastapi import APIRouter, Depends, Query
+from app.models.user import User
+from app.core.dependencies import require_user_role
+from app.models.score import DailyScore
+from datetime import date, timedelta
+
+router = APIRouter(prefix="/scores", tags=["Scores"])
+
+@router.get("/today")
+async def today_score(current_user: User = Depends(require_user_role)):
+    score = await DailyScore.find_one(
+        DailyScore.user_id == str(current_user.id),
+        DailyScore.date == date.today()
+    )
+    if not score:
+        return {"score": None, "status": "no_data"}
+    return score
+
+@router.get("/range")
+async def scores_range(
+    start: date = Query(...),
+    end: date = Query(...),
+    current_user: User = Depends(require_user_role)
+):
+    scores = await DailyScore.find(
+        DailyScore.user_id == str(current_user.id),
+        DailyScore.date >= start,
+        DailyScore.date <= end
+    ).sort("+date").to_list()
+    return [{"date": str(s.date), "score": s.score, "status": s.status} for s in scores]
+
+@router.get("/week")
+async def current_week(current_user: User = Depends(require_user_role)):
+    today = date.today()
+    week_start = today - timedelta(days=today.weekday())
+    return await scores_range(start=week_start, end=today, current_user=current_user)
+
+@router.get("/month")
+async def current_month(current_user: User = Depends(require_user_role)):
+    today = date.today()
+    month_start = date(today.year, today.month, 1)
+    return await scores_range(start=month_start, end=today, current_user=current_user)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  FILE: app/routers/guardians.py
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+from fastapi import APIRouter, Depends, HTTPException
+from app.models.user import User
+from app.models.guardian import GuardianMapping, AddGuardianRequest, UpdateGuardianRequest
+from app.core.dependencies import require_user_role, get_current_user
+from app.core.security import create_guardian_invite_token, decode_token
+from app.services.notification import send_guardian_invite_email
+from app.config import settings
+from datetime import datetime
+
+router = APIRouter(prefix="/guardians", tags=["Guardians"])
+
+@router.get("/")
+async def list_guardians(current_user: User = Depends(require_user_role)):
+    return await GuardianMapping.find(
+        GuardianMapping.user_id == str(current_user.id)
+    ).to_list()
+
+@router.post("/", status_code=201)
+async def add_guardian(
+    data: AddGuardianRequest,
+    current_user: User = Depends(require_user_role)
+):
+    mapping = GuardianMapping(
+        user_id=str(current_user.id),
+        guardian_name=data.guardian_name,
+        guardian_email=data.guardian_email,
+        guardian_phone=data.guardian_phone,
+        relationship=data.relationship,
+        receives_daily=data.receives_daily,
+        receives_weekly=data.receives_weekly,
+        receives_monthly=data.receives_monthly,
+        yellow_alerts=data.yellow_alerts,
+        red_alerts=data.red_alerts,
+        status="pending"
+    )
+    await mapping.insert()
+    invite_token = create_guardian_invite_token(str(mapping.id))
+    mapping.invite_token = invite_token
+    await mapping.save()
+    invite_url = f"{settings.FRONTEND_URL}/guardian/accept?token={invite_token}"
+    await send_guardian_invite_email(
+        data.guardian_email, data.guardian_name,
+        current_user.full_name, invite_url
+    )
+    return {"detail": "Guardian invite sent", "mapping_id": str(mapping.id)}
+
+@router.patch("/{mapping_id}")
+async def update_guardian(
+    mapping_id: str,
+    data: UpdateGuardianRequest,
+    current_user: User = Depends(require_user_role)
+):
+    mapping = await GuardianMapping.get(mapping_id)
+    if not mapping or mapping.user_id != str(current_user.id):
+        raise HTTPException(status_code=404, detail="Guardian mapping not found")
+    update_data = data.dict(exclude_none=True)
+    for k, v in update_data.items():
+        setattr(mapping, k, v)
+    await mapping.save()
+    return mapping
+
+@router.delete("/{mapping_id}")
+async def remove_guardian(mapping_id: str, current_user: User = Depends(require_user_role)):
+    mapping = await GuardianMapping.get(mapping_id)
+    if not mapping or mapping.user_id != str(current_user.id):
+        raise HTTPException(status_code=404, detail="Not found")
+    mapping.status = "removed"
+    await mapping.save()
+    return {"detail": "Guardian removed"}
+
+@router.post("/accept")
+async def accept_invite(token: str):
+    """Called when guardian clicks the invite link."""
+    payload = decode_token(token)
+    if not payload or payload.get("type") != "guardian_invite":
+        raise HTTPException(status_code=400, detail="Invalid or expired invite token")
+    mapping = await GuardianMapping.get(payload["sub"])
+    if not mapping:
+        raise HTTPException(status_code=404, detail="Invite not found")
+    mapping.status = "active"
+    mapping.accepted_at = datetime.utcnow()
+    mapping.invite_token = None
+    await mapping.save()
+    return {"detail": "Guardian invite accepted", "mapping_id": str(mapping.id)}
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  FILE: app/routers/alerts.py
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+from fastapi import APIRouter, Depends, HTTPException
+from app.models.alert import Alert
+from app.models.user import User
+from app.core.dependencies import require_user_role
+from datetime import datetime
+
+router = APIRouter(prefix="/alerts", tags=["Alerts"])
+
+@router.get("/")
+async def list_alerts(current_user: User = Depends(require_user_role)):
+    return await Alert.find(
+        Alert.user_id == str(current_user.id)
+    ).sort("-triggered_at").limit(50).to_list()
+
+@router.get("/unread-count")
+async def unread_count(current_user: User = Depends(require_user_role)):
+    count = await Alert.find(
+        Alert.user_id == str(current_user.id),
+        Alert.is_read == False
+    ).count()
+    return {"count": count}
+
+@router.patch("/{alert_id}/read")
+async def mark_read(alert_id: str, current_user: User = Depends(require_user_role)):
+    alert = await Alert.get(alert_id)
+    if not alert or alert.user_id != str(current_user.id):
+        raise HTTPException(404, "Alert not found")
+    alert.is_read = True
+    await alert.save()
+    return {"detail": "Marked as read"}
+
+@router.patch("/{alert_id}/resolve")
+async def resolve_alert(alert_id: str, current_user: User = Depends(require_user_role)):
+    alert = await Alert.get(alert_id)
+    if not alert or alert.user_id != str(current_user.id):
+        raise HTTPException(404, "Alert not found")
+    alert.is_resolved = True
+    alert.resolved_at = datetime.utcnow()
+    await alert.save()
+    return {"detail": "Alert resolved"}
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  FILE: app/routers/reports.py
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+from fastapi import APIRouter, Depends, Query
+from app.models.user import User
+from app.core.dependencies import require_user_role
+from app.services.report_service import (
+    get_daily_report, get_weekly_report,
+    get_monthly_report, get_yearly_report
+)
+from datetime import date
+
+router = APIRouter(prefix="/reports", tags=["Reports"])
+
+@router.get("/daily")
+async def daily(d: date = Query(default=None), current_user: User = Depends(require_user_role)):
+    return await get_daily_report(str(current_user.id), d or date.today())
+
+@router.get("/weekly")
+async def weekly(week_start: date = Query(...), current_user: User = Depends(require_user_role)):
+    return await get_weekly_report(str(current_user.id), week_start)
+
+@router.get("/monthly")
+async def monthly(
+    year: int = Query(...), month: int = Query(...),
+    current_user: User = Depends(require_user_role)
+):
+    return await get_monthly_report(str(current_user.id), year, month)
+
+@router.get("/yearly")
+async def yearly(year: int = Query(...), current_user: User = Depends(require_user_role)):
+    return await get_yearly_report(str(current_user.id), year)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  FILE: app/routers/users.py
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+from fastapi import APIRouter, Depends
+from app.models.user import User, UserOut, UserUpdate
+from app.core.dependencies import require_user_role
+from datetime import datetime
+
+router = APIRouter(prefix="/users", tags=["Users"])
+
+@router.get("/me", response_model=UserOut)
+async def get_me(current_user: User = Depends(require_user_role)):
+    return UserOut(
+        id=str(current_user.id), email=current_user.email,
+        full_name=current_user.full_name, phone=current_user.phone,
+        role=current_user.role, is_active=current_user.is_active,
+        created_at=current_user.created_at
+    )
+
+@router.patch("/me")
+async def update_me(data: UserUpdate, current_user: User = Depends(require_user_role)):
+    update_data = data.dict(exclude_none=True)
+    for k, v in update_data.items():
+        setattr(current_user, k, v)
+    current_user.updated_at = datetime.utcnow()
+    await current_user.save()
+    return {"detail": "Profile updated"}
+
+@router.delete("/me")
+async def delete_account(current_user: User = Depends(require_user_role)):
+    """Soft-delete: deactivate account and wipe behavioural logs."""
+    from app.models.behaviour_log import BehaviourLog
+    from app.models.score import DailyScore
+    current_user.is_active = False
+    await current_user.save()
+    await BehaviourLog.find(BehaviourLog.user_id == str(current_user.id)).delete()
+    await DailyScore.find(DailyScore.user_id == str(current_user.id)).delete()
+    return {"detail": "Account deactivated and data deleted"}
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  FILE: app/main.py
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+import socketio
+
+from app.config import settings
+from app.database import connect_db, close_db
+from app.core.socket_manager import sio
+from app.routers import auth, users, behaviour, scores, guardians, alerts, reports
+
+# ── FastAPI app ────────────────────────────────────────────────
+app = FastAPI(
+    title=settings.APP_NAME,
+    version=settings.APP_VERSION,
+    description="Behavioural Wellness Backend API",
+    docs_url="/docs" if settings.DEBUG else None,
+    redoc_url="/redoc" if settings.DEBUG else None,
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[settings.FRONTEND_URL, "http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# ── Lifecycle ──────────────────────────────────────────────────
+@app.on_event("startup")
+async def on_startup():
+    await connect_db()
+    print(f"🚀 {settings.APP_NAME} v{settings.APP_VERSION} started")
+
+@app.on_event("shutdown")
+async def on_shutdown():
+    await close_db()
+
+# ── Routers ────────────────────────────────────────────────────
+app.include_router(auth.router)
+app.include_router(users.router)
+app.include_router(behaviour.router)
+app.include_router(scores.router)
+app.include_router(guardians.router)
+app.include_router(alerts.router)
+app.include_router(reports.router)
+
+@app.get("/health")
+async def health():
+    return {"status": "ok", "app": settings.APP_NAME, "version": settings.APP_VERSION}
+
+# ── Mount Socket.IO over ASGI ──────────────────────────────────
+# Socket.IO path: ws://host/socket.io/
+socket_app = socketio.ASGIApp(sio, other_asgi_app=app, socketio_path="socket.io")
+
+# Entry point: run `uvicorn app.main:socket_app --reload`
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  FILE: docker-compose.yml
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+version: "3.9"
+services:
+
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: mindguard
+
+  api:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    env_file: .env
+    environment:
+      MONGO_URI: mongodb://mongo:27017
+    depends_on:
+      - mongo
+    command: uvicorn app.main:socket_app --host 0.0.0.0 --port 8000 --workers 2
+
+volumes:
+  mongo_data:
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  COMPLETE API ENDPOINT REFERENCE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Auth (Public)
+  POST   /auth/register          Register new user
+  POST   /auth/login             Login → access + refresh tokens
+  POST   /auth/refresh           Refresh access token
+  POST   /auth/logout            Logout (stateless)
+
+Users (JWT required, role=user)
+  GET    /users/me               Get own profile
+  PATCH  /users/me               Update profile / work hours / wind-down
+  DELETE /users/me               Delete account + all data
+
+Behaviour Ingest (JWT required, role=user)
+  POST   /behaviour/ingest       Push daily behaviour data → auto-scores
+  PATCH  /behaviour/mood         Update self-reported mood → re-scores
+  GET    /behaviour/log/{date}   Retrieve a specific day's raw log
+
+Scores (JWT required, role=user)
+  GET    /scores/today           Today's score + components
+  GET    /scores/range?start=&end=  Scores for a date range
+  GET    /scores/week            Current week's scores
+  GET    /scores/month           Current month's scores
+
+Reports (JWT required, role=user)
+  GET    /reports/daily?d=       Full daily report (score + breakdown + log)
+  GET    /reports/weekly?week_start=  Weekly report
+  GET    /reports/monthly?year=&month=  Monthly report
+  GET    /reports/yearly?year=   Yearly report
+
+Guardians (JWT required, role=user)
+  GET    /guardians/             List all guardian mappings
+  POST   /guardians/             Add guardian → sends invite email
+  PATCH  /guardians/{id}         Update alert/report prefs
+  DELETE /guardians/{id}         Remove guardian
+  POST   /guardians/accept?token= Accept invite (called from email link)
+
+Alerts (JWT required, role=user)
+  GET    /alerts/                List all alerts (last 50)
+  GET    /alerts/unread-count    Count of unread alerts
+  PATCH  /alerts/{id}/read       Mark alert as read
+  PATCH  /alerts/{id}/resolve    Resolve alert
+
+System
+  GET    /health                 Health check
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  SOCKET.IO EVENTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Connection:  { auth: { token: "<JWT access token>" } }
+
+Server → Client events:
+  score_update        { score, status, date }
+  new_alert           { id, level, title, message, triggered_at }
+  guardian_notified   { user_id, level, title, message }
+
+Client → Server events:
+  mood_update         { mood: 1-5 }   → triggers re-score + push back
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  QUICK START
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  # 1. Clone and install
+  pip install -r requirements.txt
+
+  # 2. Copy and fill env
+  cp .env.example .env
+
+  # 3. Run with Docker (recommended)
+  docker-compose up --build
+
+  # 4. Or run locally (MongoDB must be running)
+  uvicorn app.main:socket_app --reload --port 8000
+
+  # 5. API docs (DEBUG=true only)
+  open http://localhost:8000/docs
