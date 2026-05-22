@@ -1589,15 +1589,26 @@ async function connectBackend() {
 
         console.log("Backend Connected:", data);
 
-        document.querySelector(".s-title").innerText = data.message;
+        const titleEl = document.querySelector(".s-title");
+const scoreEl = document.querySelector(".sm-val");
 
-        document.querySelector(".sm-val").innerText = data.score || "74";
+if (titleEl) {
+    titleEl.innerText = data.message;
+}
+
+if (scoreEl) {
+    scoreEl.innerText = data.score || "74";
+}
 
     } catch (error) {
 
         console.error("Backend Error:", error);
 
-        document.querySelector(".s-title").innerText = "Backend Offline";
+        const titleEl = document.querySelector(".s-title");
+
+if (titleEl) {
+    titleEl.innerText = "Backend Offline";
+}
     }
 }
 
