@@ -1,0 +1,1618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MindGuard — Behavioural Wellness</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0a0c10; --bg2:#0f1218; --bg3:#141820;
+  --card:#161c26; --card2:#1c2333; --card3:#202736;
+  --border:rgba(255,255,255,0.06); --border2:rgba(255,255,255,0.1);
+  --text:#c8d4e8; --text-dim:#6b7a94; --text-muted:#3d4a5e;
+  --accent:#7eb8f7; --accent2:#a78bfa; --accent3:#34d399;
+  --warn:#fbbf24; --danger:#f87171; --info:#38bdf8;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;top:-200px;left:-200px;width:600px;height:600px;background:radial-gradient(circle,rgba(126,184,247,0.04) 0%,transparent 70%);pointer-events:none;z-index:0;}
+body::after{content:'';position:fixed;bottom:-200px;right:-200px;width:500px;height:500px;background:radial-gradient(circle,rgba(167,139,250,0.05) 0%,transparent 70%);pointer-events:none;z-index:0;}
+
+/* ============ LAYOUT ============ */
+.app{display:flex;min-height:100vh;position:relative;z-index:1;}
+.sidebar{width:240px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:28px 0;position:fixed;top:0;left:0;height:100vh;z-index:100;}
+.main{flex:1;margin-left:240px;padding:32px 40px;overflow-y:auto;min-height:100vh;}
+
+/* ============ SIDEBAR ============ */
+.logo{padding:0 24px 28px;border-bottom:1px solid var(--border);margin-bottom:20px;}
+.logo-mark{display:flex;align-items:center;gap:10px;margin-bottom:4px;}
+.logo-icon{width:34px;height:34px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:17px;box-shadow:0 0 20px rgba(126,184,247,0.25);}
+.logo-name{font-family:'DM Serif Display',serif;font-size:19px;color:#e8eef8;letter-spacing:-0.02em;}
+.logo-tag{font-size:9.5px;color:var(--text-muted);letter-spacing:0.1em;text-transform:uppercase;}
+.nav-sec{padding:0 12px;margin-bottom:10px;}
+.nav-lbl{font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-muted);padding:0 12px;margin-bottom:6px;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;font-size:13.5px;color:var(--text-dim);cursor:pointer;transition:all 0.15s;margin-bottom:2px;user-select:none;position:relative;}
+.nav-item:hover{background:var(--bg3);color:var(--text);}
+.nav-item.active{background:rgba(126,184,247,0.1);color:var(--accent);font-weight:500;}
+.nav-item .ni{font-size:15px;width:18px;text-align:center;}
+.nav-badge{margin-left:auto;background:var(--danger);color:#fff;font-size:10px;font-weight:600;padding:1px 6px;border-radius:10px;}
+.sidebar-foot{margin-top:auto;padding:16px 24px;border-top:1px solid var(--border);}
+.user-pill{display:flex;align-items:center;gap:10px;}
+.ava{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#334155,#1e293b);display:flex;align-items:center;justify-content:center;font-size:14px;border:1px solid var(--border2);}
+.u-name{font-size:13px;font-weight:500;color:var(--text);}
+.u-role{font-size:11px;color:var(--text-dim);}
+
+/* ============ PAGE SHELL ============ */
+.page{display:none;animation:fadeUp 0.3s ease both;}
+.page.active{display:block;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.ph{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:28px;}
+.pt{font-family:'DM Serif Display',serif;font-size:26px;color:#e8eef8;letter-spacing:-0.02em;line-height:1.2;}
+.ps{font-size:13px;color:var(--text-dim);margin-top:4px;}
+.date-pill{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:8px 16px;font-size:12px;color:var(--text-dim);white-space:nowrap;}
+
+/* ============ CARDS ============ */
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:22px;}
+.ch{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;}
+.ct{font-size:13px;font-weight:500;color:var(--text);}
+.ctag{font-size:10px;color:var(--text-dim);background:var(--bg3);padding:3px 8px;border-radius:6px;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;margin-bottom:20px;}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px;}
+.mb20{margin-bottom:20px;}
+.mb28{margin-bottom:28px;}
+
+/* ============ SPEEDOMETER GAUGE ============ */
+.score-hero{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:32px;margin-bottom:24px;display:flex;align-items:center;gap:48px;position:relative;overflow:hidden;}
+.score-hero::before{content:'';position:absolute;top:-60px;left:-60px;width:220px;height:220px;background:radial-gradient(circle,rgba(126,184,247,0.06) 0%,transparent 70%);pointer-events:none;}
+.ring-wrap{position:relative;flex-shrink:0;width:180px;height:110px;}
+.gauge-svg{overflow:visible;}
+.r-num{font-family:'DM Serif Display',serif;font-size:28px;color:#e8eef8;line-height:1;letter-spacing:-0.03em;text-anchor:middle;}
+.r-lbl{font-size:9px;fill:var(--text-dim);letter-spacing:0.07em;text-anchor:middle;text-transform:uppercase;}
+.sd{flex:1;}
+.s-status{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;padding:4px 12px;border-radius:20px;margin-bottom:14px;letter-spacing:0.04em;}
+.s-stable{background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.2);color:var(--accent3);}
+.s-mod{background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.2);color:var(--warn);}
+.s-concern{background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.2);color:var(--danger);}
+.s-dot{width:6px;height:6px;border-radius:50%;background:currentColor;}
+.s-title{font-family:'DM Serif Display',serif;font-size:20px;color:#e8eef8;margin-bottom:8px;}
+.s-desc{font-size:13px;color:var(--text-dim);line-height:1.6;margin-bottom:20px;max-width:400px;}
+.s-meta{display:flex;gap:28px;}
+.sm-val{font-family:'DM Serif Display',serif;font-size:22px;color:#e8eef8;letter-spacing:-0.02em;}
+.sm-key{font-size:11px;color:var(--text-dim);margin-top:2px;}
+
+/* ============ STAT STRIP ============ */
+.stat-box{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center;}
+.sv{font-family:'DM Serif Display',serif;font-size:22px;color:#e8eef8;letter-spacing:-0.02em;}
+.sk{font-size:11px;color:var(--text-dim);margin-top:3px;}
+.st{font-size:10px;margin-top:4px;}
+.t-up{color:var(--accent3);}
+.t-dn{color:var(--danger);}
+.t-nu{color:var(--text-dim);}
+
+/* ============ SIGNAL ITEMS ============ */
+.sig-list{display:flex;flex-direction:column;gap:10px;}
+.sig-item{display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--bg3);border-radius:10px;border:1px solid var(--border);}
+.sig-ic{font-size:16px;width:20px;text-align:center;}
+.sig-tx{flex:1;font-size:12.5px;color:var(--text-dim);line-height:1.4;}
+.badge{font-size:10px;padding:2px 8px;border-radius:6px;font-weight:500;white-space:nowrap;}
+.b-ok{background:rgba(52,211,153,0.1);color:var(--accent3);}
+.b-warn{background:rgba(251,191,36,0.1);color:var(--warn);}
+.b-bad{background:rgba(248,113,113,0.1);color:var(--danger);}
+.b-info{background:rgba(56,189,248,0.1);color:var(--info);}
+
+/* ============ ALERT BANNERS ============ */
+.alert-y{background:rgba(251,191,36,0.05);border:1px solid rgba(251,191,36,0.15);border-radius:14px;padding:16px 18px;display:flex;gap:12px;align-items:flex-start;}
+.alert-r{background:rgba(248,113,113,0.06);border:1px solid rgba(248,113,113,0.2);border-radius:14px;padding:16px 18px;display:flex;gap:12px;align-items:flex-start;}
+.alert-g{background:rgba(52,211,153,0.05);border:1px solid rgba(52,211,153,0.15);border-radius:14px;padding:16px 18px;display:flex;gap:12px;align-items:flex-start;}
+.a-ic{font-size:18px;margin-top:1px;flex-shrink:0;}
+.a-title{font-size:13px;font-weight:500;margin-bottom:3px;}
+.a-text{font-size:12.5px;color:var(--text-dim);line-height:1.5;}
+.ay .a-title{color:var(--warn);}
+.ar .a-title{color:var(--danger);}
+.ag .a-title{color:var(--accent3);}
+
+/* ============ SUGGESTION ============ */
+.suggest{background:linear-gradient(135deg,rgba(126,184,247,0.08),rgba(52,211,153,0.04));border:1px solid rgba(126,184,247,0.15);border-radius:14px;padding:18px 20px;display:flex;gap:14px;align-items:flex-start;}
+.sug-ic{font-size:24px;}
+.sug-t{font-size:13px;font-weight:500;color:var(--accent);margin-bottom:4px;}
+.sug-d{font-size:12.5px;color:var(--text-dim);line-height:1.55;}
+
+/* ============ WEEK BAR CHART ============ */
+.week-bars{display:flex;align-items:flex-end;gap:10px;height:90px;}
+.wb-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;}
+.wb{width:100%;border-radius:4px 4px 0 0;cursor:pointer;position:relative;transition:opacity 0.15s;}
+.wb:hover{opacity:0.85;}
+.wb.today{box-shadow:0 0 10px rgba(126,184,247,0.3);}
+.wb-day{font-size:10px;color:var(--text-muted);}
+.wb-score{font-size:10px;font-weight:500;}
+
+/* ============ APP USAGE ============ */
+.app-list{display:flex;flex-direction:column;gap:10px;}
+.app-row{display:flex;align-items:center;gap:12px;}
+.app-dot{width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+.app-inf{flex:1;}
+.app-nm{font-size:13px;color:var(--text);}
+.app-op{font-size:11px;color:var(--text-muted);margin-top:1px;}
+.app-bw{width:90px;}
+.app-bg{height:4px;background:var(--bg3);border-radius:2px;overflow:hidden;}
+.app-bf{height:100%;border-radius:2px;}
+.app-tm{font-size:11.5px;color:var(--text-dim);text-align:right;min-width:40px;}
+
+/* ============ MOOD ============ */
+.mood-row{display:flex;justify-content:space-between;}
+.mood-btn{display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;padding:10px 8px;border-radius:10px;transition:background 0.15s;flex:1;}
+.mood-btn:hover{background:var(--bg3);}
+.mood-btn.sel{background:rgba(126,184,247,0.1);}
+.mood-em{font-size:22px;}
+.mood-lb{font-size:9px;color:var(--text-muted);letter-spacing:0.04em;}
+
+/* ============ GUARDIAN ============ */
+.g-card{background:linear-gradient(135deg,rgba(167,139,250,0.08),rgba(126,184,247,0.05));border:1px solid rgba(167,139,250,0.15);}
+.g-list{display:flex;flex-direction:column;gap:10px;}
+.g-item{display:flex;align-items:center;gap:12px;padding:10px;background:rgba(255,255,255,0.025);border-radius:10px;border:1px solid var(--border);}
+.g-ava{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;border:1px solid var(--border2);flex-shrink:0;}
+.g-nm{font-size:13px;color:var(--text);font-weight:500;}
+.g-rl{font-size:11px;color:var(--text-dim);}
+.g-st{margin-left:auto;font-size:11px;white-space:nowrap;}
+
+/* ============ TABS ============ */
+.tabs{display:flex;gap:2px;background:var(--bg3);border-radius:10px;padding:3px;margin-bottom:22px;}
+.tab{flex:1;text-align:center;padding:7px;border-radius:8px;font-size:12.5px;cursor:pointer;color:var(--text-dim);transition:all 0.15s;}
+.tab.active{background:var(--card2);color:var(--accent);font-weight:500;}
+
+/* ============ TABLE ============ */
+.tbl{width:100%;border-collapse:collapse;}
+.tbl th{font-size:10.5px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);padding:0 12px 12px;text-align:left;font-weight:500;}
+.tbl td{font-size:13px;color:var(--text-dim);padding:11px 12px;border-top:1px solid var(--border);}
+.tbl td:first-child{color:var(--text);}
+.tbl tr:hover td{background:rgba(255,255,255,0.018);}
+.score-chip{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:500;}
+
+/* ============ PROGRESS BAR ============ */
+.prog-wrap{height:6px;background:var(--bg3);border-radius:3px;overflow:hidden;}
+.prog-fill{height:100%;border-radius:3px;transition:width 0.8s ease;}
+
+/* ============ TOGGLE ============ */
+.toggle{position:relative;display:inline-block;width:36px;height:20px;cursor:pointer;}
+.toggle input{opacity:0;width:0;height:0;}
+.toggle-sl{position:absolute;top:0;left:0;right:0;bottom:0;background:var(--bg3);border-radius:20px;transition:0.2s;border:1px solid var(--border2);}
+.toggle input:checked+.toggle-sl{background:rgba(126,184,247,0.3);border-color:var(--accent);}
+.toggle-sl::before{content:'';position:absolute;height:14px;width:14px;left:2px;bottom:2px;background:var(--text-dim);border-radius:50%;transition:0.2s;}
+.toggle input:checked+.toggle-sl::before{transform:translateX(16px);background:var(--accent);}
+
+/* ============ INPUT ============ */
+.inp{background:var(--bg3);border:1px solid var(--border2);border-radius:10px;padding:10px 14px;font-size:13.5px;color:var(--text);width:100%;outline:none;font-family:'DM Sans',sans-serif;transition:border-color 0.15s;}
+.inp:focus{border-color:rgba(126,184,247,0.4);}
+.inp::placeholder{color:var(--text-muted);}
+.inp-lbl{font-size:11.5px;color:var(--text-dim);margin-bottom:6px;}
+.inp-grp{margin-bottom:16px;}
+.sel{background:var(--bg3);border:1px solid var(--border2);border-radius:10px;padding:10px 14px;font-size:13.5px;color:var(--text);width:100%;outline:none;font-family:'DM Sans',sans-serif;appearance:none;}
+
+/* ============ BUTTONS ============ */
+.btn{padding:9px 18px;border-radius:10px;font-size:13px;font-weight:500;cursor:pointer;transition:all 0.15s;border:none;font-family:'DM Sans',sans-serif;}
+.btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#0a0c10;}
+.btn-primary:hover{opacity:0.85;}
+.btn-ghost{background:var(--bg3);border:1px solid var(--border2);color:var(--text-dim);}
+.btn-ghost:hover{color:var(--text);border-color:var(--border2);}
+.btn-danger{background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.2);color:var(--danger);}
+.btn-sm{padding:6px 12px;font-size:12px;}
+
+/* ============ TIMELINE ============ */
+.timeline{display:flex;flex-direction:column;gap:0;}
+.tl-item{display:flex;gap:16px;padding-bottom:20px;position:relative;}
+.tl-item:not(:last-child)::before{content:'';position:absolute;left:15px;top:32px;bottom:0;width:1px;background:var(--border);}
+.tl-dot{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;border:1px solid var(--border2);}
+.tl-body{flex:1;padding-top:4px;}
+.tl-time{font-size:11px;color:var(--text-muted);margin-bottom:3px;}
+.tl-title{font-size:13px;color:var(--text);font-weight:500;margin-bottom:2px;}
+.tl-desc{font-size:12px;color:var(--text-dim);line-height:1.5;}
+
+/* ============ HEATMAP ============ */
+.heatmap-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
+.hm-cell{aspect-ratio:1;border-radius:3px;cursor:pointer;position:relative;transition:transform 0.1s;}
+.hm-cell:hover{transform:scale(1.15);}
+
+/* ============ CATEGORY ICONS ============ */
+.cat-pill{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;}
+
+/* ============ MINI SPARKLINE ============ */
+.sparkline{display:flex;align-items:flex-end;gap:2px;height:28px;}
+.sp-bar{flex:1;border-radius:1px;min-height:2px;}
+
+/* ============ ONBOARDING ============ */
+.onboard-steps{display:flex;gap:8px;margin-bottom:28px;}
+.ob-step{flex:1;height:3px;border-radius:2px;background:var(--bg3);}
+.ob-step.done{background:var(--accent);}
+.ob-step.active{background:rgba(126,184,247,0.5);}
+
+/* ============ SCROLLBAR ============ */
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--bg3);border-radius:2px;}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ===================== SIDEBAR ===================== -->
+<nav class="sidebar">
+  <div class="logo">
+    <div class="logo-mark">
+      <div class="logo-icon">🧠</div>
+      <span class="logo-name">MindGuard</span>
+    </div>
+    <div class="logo-tag">Behavioural Wellness</div>
+  </div>
+
+  <div class="nav-sec">
+    <div class="nav-lbl">Overview</div>
+    <div class="nav-item active" data-page="dashboard"><span class="ni">◉</span> Dashboard</div>
+    <div class="nav-item" data-page="signals"><span class="ni">📡</span> Behaviour Signals</div>
+    <div class="nav-item" data-page="appusage"><span class="ni">📱</span> App Usage</div>
+  </div>
+
+  <div class="nav-sec">
+    <div class="nav-lbl">Reports</div>
+    <div class="nav-item" data-page="daily"><span class="ni">📅</span> Daily Report</div>
+    <div class="nav-item" data-page="weekly"><span class="ni">📈</span> Weekly</div>
+    <div class="nav-item" data-page="monthly"><span class="ni">🗓</span> Monthly</div>
+    <div class="nav-item" data-page="yearly"><span class="ni">✦</span> Yearly</div>
+  </div>
+
+  <div class="nav-sec">
+    <div class="nav-lbl">Guardian</div>
+    <div class="nav-item" data-page="alerts"><span class="ni">🔔</span> Alerts <span class="nav-badge">2</span></div>
+    <div class="nav-item" data-page="guardian"><span class="ni">🛡</span> Guardians</div>
+    <div class="nav-item" data-page="guardian-view"><span class="ni">👁</span> Guardian View</div>
+  </div>
+
+  <div class="nav-sec">
+    <div class="nav-lbl">Account</div>
+    <div class="nav-item" data-page="settings"><span class="ni">⚙</span> Settings</div>
+    <div class="nav-item" data-page="onboarding"><span class="ni">🚀</span> Onboarding</div>
+  </div>
+
+  <div class="sidebar-foot">
+    <div class="user-pill">
+      <div class="ava">🧑</div>
+      <div>
+        <div class="u-name">JD</div>
+        <div class="u-role">Primary User</div>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- ===================== PAGES ===================== -->
+<main class="main">
+
+<!-- ====== 1. DASHBOARD ====== -->
+<div class="page active" id="page-dashboard">
+  <div class="ph">
+    <div><div class="pt">Your Wellness Dashboard</div><div class="ps">Saturday, 25 April 2026 — Live monitoring active</div></div>
+    <div class="date-pill">🕐 Updated 3 min ago</div>
+  </div>
+
+  <div class="alert-y ay mb20">
+    <div class="a-ic">⚠️</div>
+    <div><div class="a-title">Late-Night Usage Detected</div><div class="a-text">Activity detected between 1:20 AM – 2:45 AM. Your guardian Meena has been sent a gentle summary notification.</div></div>
+  </div>
+
+  <div class="score-hero mb20">
+    <!-- SPEEDOMETER GAUGE — drawn by JS -->
+    <div class="ring-wrap" style="width:200px;height:130px;flex-shrink:0;">
+      <svg id="gauge-svg" viewBox="-20 -55 240 185" width="200" height="128" style="overflow:visible;display:block;"></svg>
+    </div>
+    <div class="sd">
+      <div class="s-status s-stable"><span class="s-dot"></span> Stable</div>
+      <div class="s-title">You're holding steady, JD.</div>
+      <div class="s-desc">Your patterns today look mostly balanced. There was some late-night activity that pulled the score down a little. Try winding down earlier tonight — your mind will thank you.</div>
+      <div class="s-meta">
+        <div><div class="sm-val">74</div><div class="sm-key">Weekly Avg</div></div>
+        <div><div class="sm-val">71</div><div class="sm-key">Monthly Avg</div></div>
+        <div><div class="sm-val">68</div><div class="sm-key">Yearly Avg</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid4 mb20">
+    <div class="stat-box"><div class="sv">4h 22m</div><div class="sk">Screen Time</div><div class="st t-dn">▼ 18% vs avg</div></div>
+    <div class="stat-box"><div class="sv">47</div><div class="sk">App Opens</div><div class="st t-up">▲ 5% vs avg</div></div>
+    <div class="stat-box"><div class="sv">8</div><div class="sk">Apps Used</div><div class="st t-nu">— Typical</div></div>
+    <div class="stat-box"><div class="sv">1:20<span style="font-size:14px">am</span></div><div class="sk">Last Active</div><div class="st t-dn">Late night</div></div>
+  </div>
+
+  <div class="suggest mb20">
+    <div class="sug-ic">🌙</div>
+    <div><div class="sug-t">Tonight's MindGuard Tip</div><div class="sug-d">You've had a late night two days in a row. Consider setting your phone to wind-down mode at 10:30 PM. Even 30 minutes less screen time before bed can meaningfully improve how you feel tomorrow.</div></div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <div class="ch"><div class="ct">This Week's Scores</div><div class="ctag">Apr 19–25</div></div>
+      <div class="week-bars" id="dash-bars"></div>
+      <div style="margin-top:12px;font-size:11px;color:var(--text-dim)">Weekly Average: <span style="color:var(--accent);font-weight:500">72.3 / 100</span></div>
+    </div>
+    <div class="card">
+      <div class="ch"><div class="ct">Today's Signals</div><div class="ctag">Live</div></div>
+      <div class="sig-list">
+        <div class="sig-item"><div class="sig-ic">⌨️</div><div class="sig-tx">Calm, consistent typing throughout the day</div><div class="badge b-ok">Normal</div></div>
+        <div class="sig-item"><div class="sig-ic">🌙</div><div class="sig-tx">Active 1:20–2:45 AM — late-night usage flagged</div><div class="badge b-bad">Flagged</div></div>
+        <div class="sig-item"><div class="sig-ic">📱</div><div class="sig-tx">Screen time 18% below your personal average</div><div class="badge b-ok">Positive</div></div>
+        <div class="sig-item"><div class="sig-ic">🔁</div><div class="sig-tx">Instagram opened 11×  — within normal range</div><div class="badge b-ok">Normal</div></div>
+        <div class="sig-item"><div class="sig-ic">🧘</div><div class="sig-tx">Breathwrk used for 12 min — positive self-care</div><div class="badge b-ok">+Bonus</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <div class="ch"><div class="ct">Top Apps Today</div><div class="ctag">Duration</div></div>
+      <div class="app-list" id="dash-apps"></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:20px;">
+      <div class="card">
+        <div class="ch"><div class="ct">How are you feeling?</div><div class="ctag">Self-report</div></div>
+        <div class="mood-row">
+          <div class="mood-btn" onclick="selMood(this)"><div class="mood-em">😄</div><div class="mood-lb">Great</div></div>
+          <div class="mood-btn" onclick="selMood(this)"><div class="mood-em">😊</div><div class="mood-lb">Good</div></div>
+          <div class="mood-btn sel" onclick="selMood(this)"><div class="mood-em">😐</div><div class="mood-lb">Okay</div></div>
+          <div class="mood-btn" onclick="selMood(this)"><div class="mood-em">😔</div><div class="mood-lb">Low</div></div>
+          <div class="mood-btn" onclick="selMood(this)"><div class="mood-em">😞</div><div class="mood-lb">Tough</div></div>
+        </div>
+      </div>
+      <div class="card g-card">
+        <div class="ch"><div class="ct">Guardian Status</div><div class="ctag">🛡 Active</div></div>
+        <div class="g-list">
+          <div class="g-item"><div class="g-ava" style="background:rgba(52,211,153,0.1)">👩</div><div><div class="g-nm">Meena (Mother)</div><div class="g-rl">Weekly reports · Alerts on</div></div><div class="g-st" style="color:var(--warn)">🟡 Notified</div></div>
+          <div class="g-item"><div class="g-ava" style="background:rgba(126,184,247,0.1)">👨</div><div><div class="g-nm">Rajan (Father)</div><div class="g-rl">Monthly reports · Alerts on</div></div><div class="g-st" style="color:var(--accent3)">🟢 Up to date</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== 2. BEHAVIOUR SIGNALS ====== -->
+<div class="page" id="page-signals">
+  <div class="ph">
+    <div><div class="pt">Behaviour Signals</div><div class="ps">Deep analysis of your digital behaviour patterns</div></div>
+    <div class="date-pill">📅 Apr 25, 2026</div>
+  </div>
+
+  <div class="grid4 mb20">
+    <div class="stat-box"><div class="sv" style="color:var(--warn)">3</div><div class="sk">Signals Flagged</div><div class="st t-dn">Today</div></div>
+    <div class="stat-box"><div class="sv" style="color:var(--accent3)">5</div><div class="sk">Positive Signals</div><div class="st t-up">Today</div></div>
+    <div class="stat-box"><div class="sv">42</div><div class="sk">WPM Avg Typing</div><div class="st t-nu">Normal</div></div>
+    <div class="stat-box"><div class="sv">8.4h</div><div class="sk">Awake Usage Window</div><div class="st t-nu">7am–11pm</div></div>
+  </div>
+
+  <div class="grid2 mb20">
+    <!-- TYPING SIGNAL -->
+    <div class="card">
+      <div class="ch"><div class="ct">⌨️ Typing Speed Analysis</div><div class="badge b-ok">Normal</div></div>
+      <div style="margin-bottom:14px;">
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;letter-spacing:0.06em;text-transform:uppercase;">Speed Over Time Today</div>
+        <div style="display:flex;align-items:flex-end;gap:4px;height:60px;" id="typing-chart"></div>
+        <div style="display:flex;justify-content:space-between;margin-top:4px;font-size:10px;color:var(--text-muted)">
+          <span>8am</span><span>12pm</span><span>4pm</span><span>8pm</span><span>Now</span>
+        </div>
+      </div>
+      <div class="sig-list">
+        <div class="sig-item"><div class="sig-ic">✅</div><div class="sig-tx">Morning typing: 38 WPM — calm and focused</div><div class="badge b-ok">+2 pts</div></div>
+        <div class="sig-item"><div class="sig-ic">⚡</div><div class="sig-tx">1:30 AM burst: 84 WPM with backspaces — possible anxiety</div><div class="badge b-warn">–3 pts</div></div>
+      </div>
+    </div>
+
+    <!-- TIME OF DAY -->
+    <div class="card">
+      <div class="ch"><div class="ct">🕐 Time-of-Day Usage</div><div class="badge b-warn">1 Flag</div></div>
+      <div style="margin-bottom:14px;">
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;letter-spacing:0.06em;text-transform:uppercase;">24-Hour Heatmap</div>
+        <div style="display:flex;gap:3px;" id="hour-heat"></div>
+        <div style="display:flex;justify-content:space-between;margin-top:4px;font-size:10px;color:var(--text-muted)"><span>12am</span><span>6am</span><span>12pm</span><span>6pm</span><span>11pm</span></div>
+      </div>
+      <div class="sig-list">
+        <div class="sig-item"><div class="sig-ic">🌙</div><div class="sig-tx">Late night activity: 1:20 AM – 2:45 AM (85 min)</div><div class="badge b-bad">–6 pts</div></div>
+        <div class="sig-item"><div class="sig-ic">☀️</div><div class="sig-tx">No usage before 7 AM — healthy sleep boundary</div><div class="badge b-ok">+2 pts</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid2 mb20">
+    <!-- SOCIAL VS ISOLATION -->
+    <div class="card">
+      <div class="ch"><div class="ct">🤝 Social vs Isolation Patterns</div><div class="badge b-ok">Balanced</div></div>
+      <div style="margin-bottom:16px;">
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.06em;">Communication vs Isolation Apps</div>
+        <div style="display:flex;gap:12px;align-items:center;margin-bottom:8px;">
+          <div style="font-size:12px;color:var(--text-dim);width:100px;">Social Apps</div>
+          <div class="prog-wrap" style="flex:1"><div class="prog-fill" style="width:42%;background:var(--accent3)"></div></div>
+          <div style="font-size:12px;color:var(--accent3);width:32px;text-align:right">42%</div>
+        </div>
+        <div style="display:flex;gap:12px;align-items:center;margin-bottom:8px;">
+          <div style="font-size:12px;color:var(--text-dim);width:100px;">Isolation Apps</div>
+          <div class="prog-wrap" style="flex:1"><div class="prog-fill" style="width:35%;background:var(--accent2)"></div></div>
+          <div style="font-size:12px;color:var(--accent2);width:32px;text-align:right">35%</div>
+        </div>
+        <div style="display:flex;gap:12px;align-items:center;">
+          <div style="font-size:12px;color:var(--text-dim);width:100px;">Productive</div>
+          <div class="prog-wrap" style="flex:1"><div class="prog-fill" style="width:23%;background:var(--accent)"></div></div>
+          <div style="font-size:12px;color:var(--accent);width:32px;text-align:right">23%</div>
+        </div>
+      </div>
+      <div class="sig-list">
+        <div class="sig-item"><div class="sig-ic">👥</div><div class="sig-tx">Moderate social app use during evening hours — healthy</div><div class="badge b-ok">Normal</div></div>
+        <div class="sig-item"><div class="sig-ic">🎧</div><div class="sig-tx">No active social contact apps during weekend afternoon</div><div class="badge b-warn">Watch</div></div>
+      </div>
+    </div>
+
+    <!-- COMPULSIVE USAGE -->
+    <div class="card">
+      <div class="ch"><div class="ct">🔄 Compulsive Usage Detector</div><div class="badge b-ok">No Flags</div></div>
+      <div style="margin-bottom:16px;display:flex;flex-direction:column;gap:8px;">
+        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">App Compulsion Risk Score</div>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="font-size:13px;color:var(--text-dim);min-width:100px;">Instagram</div>
+          <div class="prog-wrap" style="flex:1"><div class="prog-fill" style="width:55%;background:var(--accent)"></div></div>
+          <div style="font-size:12px;color:var(--text-dim)">11 opens</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="font-size:13px;color:var(--text-dim);min-width:100px;">News App</div>
+          <div class="prog-wrap" style="flex:1"><div class="prog-fill" style="width:40%;background:var(--warn)"></div></div>
+          <div style="font-size:12px;color:var(--text-dim)">8 opens</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="font-size:13px;color:var(--text-dim);min-width:100px;">Spotify</div>
+          <div class="prog-wrap" style="flex:1"><div class="prog-fill" style="width:30%;background:var(--accent3)"></div></div>
+          <div style="font-size:12px;color:var(--text-dim)">6 opens</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="font-size:13px;color:var(--text-dim);min-width:100px;">Mobile Game</div>
+          <div class="prog-wrap" style="flex:1"><div class="prog-fill" style="width:15%;background:var(--accent2)"></div></div>
+          <div style="font-size:12px;color:var(--text-dim)">3 opens</div>
+        </div>
+      </div>
+      <div class="sig-list">
+        <div class="sig-item"><div class="sig-ic">✅</div><div class="sig-tx">No app exceeded the 20 opens/day compulsion threshold</div><div class="badge b-ok">Safe</div></div>
+        <div class="sig-item"><div class="sig-ic">📰</div><div class="sig-tx">News app opens trending up — monitor for doomscrolling</div><div class="badge b-warn">Watch</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- WORKDAY ANALYSIS -->
+  <div class="card mb20">
+    <div class="ch"><div class="ct">💼 Weekday Work-Hour Analysis</div><div class="ctag">Mon–Fri 9am–5pm</div></div>
+    <div class="grid3" style="margin-bottom:0;">
+      <div style="text-align:center;padding:16px;background:var(--bg3);border-radius:12px;">
+        <div style="font-family:'DM Serif Display',serif;font-size:28px;color:var(--accent3)">62%</div>
+        <div style="font-size:11px;color:var(--text-dim);margin-top:4px;">Productive App Use</div>
+        <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">During work hours</div>
+      </div>
+      <div style="text-align:center;padding:16px;background:var(--bg3);border-radius:12px;">
+        <div style="font-family:'DM Serif Display',serif;font-size:28px;color:var(--warn)">28%</div>
+        <div style="font-size:11px;color:var(--text-dim);margin-top:4px;">Avoidance App Use</div>
+        <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">Social/entertainment</div>
+      </div>
+      <div style="text-align:center;padding:16px;background:var(--bg3);border-radius:12px;">
+        <div style="font-family:'DM Serif Display',serif;font-size:28px;color:var(--accent)">10%</div>
+        <div style="font-size:11px;color:var(--text-dim);margin-top:4px;">Screen-Off Time</div>
+        <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">Resting / focusing</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== 3. APP USAGE ====== -->
+<div class="page" id="page-appusage">
+  <div class="ph">
+    <div><div class="pt">App Usage Analysis</div><div class="ps">Duration, frequency, and mood mapping for every app</div></div>
+    <div class="date-pill">📅 Apr 25, 2026</div>
+  </div>
+
+  <div class="grid4 mb20">
+    <div class="stat-box"><div class="sv">4h 22m</div><div class="sk">Total Screen Time</div><div class="st t-dn">▼ vs 5h 22m avg</div></div>
+    <div class="stat-box"><div class="sv">47</div><div class="sk">Total App Opens</div><div class="st t-nu">Normal range</div></div>
+    <div class="stat-box"><div class="sv">8</div><div class="sk">Unique Apps</div><div class="st t-nu">— Typical</div></div>
+    <div class="stat-box"><div class="sv">1h 24m</div><div class="sk">Longest Single App</div><div class="st t-nu">Spotify</div></div>
+  </div>
+
+  <div class="card mb20">
+    <div class="ch"><div class="ct">All Apps Today</div><div class="ctag">Sorted by duration</div></div>
+    <table class="tbl">
+      <tr><th>App</th><th>Category</th><th>Opens</th><th>Duration</th><th>Mood Signal</th><th>Score Impact</th></tr>
+      <tr>
+        <td><div style="display:flex;align-items:center;gap:8px;"><span style="font-size:16px">🎵</span> Spotify</div></td>
+        <td><span class="cat-pill" style="background:rgba(52,211,153,0.1);color:var(--accent3)">🎵 Music</span></td>
+        <td>6</td>
+        <td>1h 24m</td>
+        <td style="color:var(--text-dim);font-size:12px;">Comfort-seeking / relaxation</td>
+        <td><span class="score-chip" style="background:rgba(52,211,153,0.1);color:var(--accent3)">Neutral</span></td>
+      </tr>
+      <tr>
+        <td><div style="display:flex;align-items:center;gap:8px;"><span style="font-size:16px">📸</span> Instagram</div></td>
+        <td><span class="cat-pill" style="background:rgba(126,184,247,0.1);color:var(--accent)">👥 Social</span></td>
+        <td>11</td>
+        <td>58m</td>
+        <td style="color:var(--text-dim);font-size:12px;">Social connection / mild escape</td>
+        <td><span class="score-chip" style="background:rgba(126,184,247,0.1);color:var(--accent)">Neutral</span></td>
+      </tr>
+      <tr>
+        <td><div style="display:flex;align-items:center;gap:8px;"><span style="font-size:16px">📰</span> News App</div></td>
+        <td><span class="cat-pill" style="background:rgba(251,191,36,0.1);color:var(--warn)">📰 News</span></td>
+        <td>8</td>
+        <td>44m</td>
+        <td style="color:var(--text-dim);font-size:12px;">Possible anxiety / doomscrolling</td>
+        <td><span class="score-chip" style="background:rgba(251,191,36,0.1);color:var(--warn)">–2 pts</span></td>
+      </tr>
+      <tr>
+        <td><div style="display:flex;align-items:center;gap:8px;"><span style="font-size:16px">🎮</span> Mobile Game</div></td>
+        <td><span class="cat-pill" style="background:rgba(167,139,250,0.1);color:var(--accent2)">🎮 Gaming</span></td>
+        <td>3</td>
+        <td>32m</td>
+        <td style="color:var(--text-dim);font-size:12px;">Casual escapism / relaxation</td>
+        <td><span class="score-chip" style="background:rgba(52,211,153,0.1);color:var(--accent3)">Neutral</span></td>
+      </tr>
+      <tr>
+        <td><div style="display:flex;align-items:center;gap:8px;"><span style="font-size:16px">🧘</span> Breathwrk</div></td>
+        <td><span class="cat-pill" style="background:rgba(52,211,153,0.1);color:var(--accent3)">🧘 Wellness</span></td>
+        <td>2</td>
+        <td>12m</td>
+        <td style="color:var(--text-dim);font-size:12px;">Active self-care / positive coping</td>
+        <td><span class="score-chip" style="background:rgba(52,211,153,0.1);color:var(--accent3)">+5 pts</span></td>
+      </tr>
+      <tr>
+        <td><div style="display:flex;align-items:center;gap:8px;"><span style="font-size:16px">💬</span> WhatsApp</div></td>
+        <td><span class="cat-pill" style="background:rgba(126,184,247,0.1);color:var(--accent)">💬 Chat</span></td>
+        <td>9</td>
+        <td>18m</td>
+        <td style="color:var(--text-dim);font-size:12px;">Social connection</td>
+        <td><span class="score-chip" style="background:rgba(52,211,153,0.1);color:var(--accent3)">+1 pt</span></td>
+      </tr>
+      <tr>
+        <td><div style="display:flex;align-items:center;gap:8px;"><span style="font-size:16px">📷</span> Camera</div></td>
+        <td><span class="cat-pill" style="background:rgba(126,184,247,0.1);color:var(--accent)">📷 Creative</span></td>
+        <td>4</td>
+        <td>10m</td>
+        <td style="color:var(--text-dim);font-size:12px;">Creative engagement</td>
+        <td><span class="score-chip" style="background:rgba(52,211,153,0.1);color:var(--accent3)">+2 pts</span></td>
+      </tr>
+      <tr>
+        <td><div style="display:flex;align-items:center;gap:8px;"><span style="font-size:16px">🧠</span> MindGuard</div></td>
+        <td><span class="cat-pill" style="background:rgba(167,139,250,0.1);color:var(--accent2)">🛡 Wellness</span></td>
+        <td>4</td>
+        <td>4m</td>
+        <td style="color:var(--text-dim);font-size:12px;">Self-monitoring / awareness</td>
+        <td><span class="score-chip" style="background:rgba(52,211,153,0.1);color:var(--accent3)">+3 pts</span></td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <div class="ch"><div class="ct">Usage by Category</div><div class="ctag">Today</div></div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div><div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:12px;"><span style="color:var(--text-dim)">🎵 Music & Audio</span><span style="color:var(--accent)">1h 24m</span></div><div class="prog-wrap"><div class="prog-fill" style="width:65%;background:var(--accent)"></div></div></div>
+        <div><div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:12px;"><span style="color:var(--text-dim)">👥 Social Media</span><span style="color:var(--accent3)">58m</span></div><div class="prog-wrap"><div class="prog-fill" style="width:37%;background:var(--accent3)"></div></div></div>
+        <div><div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:12px;"><span style="color:var(--text-dim)">📰 News</span><span style="color:var(--warn)">44m</span></div><div class="prog-wrap"><div class="prog-fill" style="width:28%;background:var(--warn)"></div></div></div>
+        <div><div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:12px;"><span style="color:var(--text-dim)">🎮 Gaming</span><span style="color:var(--accent2)">32m</span></div><div class="prog-wrap"><div class="prog-fill" style="width:20%;background:var(--accent2)"></div></div></div>
+        <div><div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:12px;"><span style="color:var(--text-dim)">💬 Communication</span><span style="color:var(--accent3)">18m</span></div><div class="prog-wrap"><div class="prog-fill" style="width:12%;background:var(--accent3)"></div></div></div>
+        <div><div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:12px;"><span style="color:var(--text-dim)">🧘 Wellness</span><span style="color:var(--accent3)">16m</span></div><div class="prog-wrap"><div class="prog-fill" style="width:10%;background:var(--accent3)"></div></div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ch"><div class="ct">7-Day App Trends</div><div class="ctag">Compulsive watch</div></div>
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:12px;"><span style="color:var(--text)">📸 Instagram opens/day</span><span style="color:var(--text-dim)">avg 10.4</span></div>
+          <div class="sparkline" id="sp-insta"></div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:12px;"><span style="color:var(--text)">📰 News opens/day</span><span style="color:var(--warn)">↑ trending up</span></div>
+          <div class="sparkline" id="sp-news"></div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:12px;"><span style="color:var(--text)">🧘 Breathwrk sessions</span><span style="color:var(--accent3)">↑ positive</span></div>
+          <div class="sparkline" id="sp-breath"></div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:12px;"><span style="color:var(--text)">📱 Total screen (hrs)</span><span style="color:var(--text-dim)">avg 5.1h</span></div>
+          <div class="sparkline" id="sp-screen"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== 4. DAILY REPORT ====== -->
+<div class="page" id="page-daily">
+  <div class="ph">
+    <div><div class="pt">Daily Report</div><div class="ps">Full breakdown for Saturday, 25 April 2026</div></div>
+    <div class="date-pill" style="cursor:pointer">◀ Apr 24 &nbsp;|&nbsp; Apr 25 &nbsp;|&nbsp; Apr 26 ▶</div>
+  </div>
+
+  <div class="alert-y ay mb20">
+    <div class="a-ic">⚠️</div>
+    <div><div class="a-title">Today's Guardian Action</div><div class="a-text">A gentle summary was sent to Meena at 7:00 AM noting late-night activity. No urgent alert triggered.</div></div>
+  </div>
+
+  <div style="display:flex;gap:20px;margin-bottom:20px;align-items:flex-start;">
+    <div style="flex-shrink:0;width:160px;">
+      <svg id="daily-gauge" viewBox="-20 -55 240 185" width="160" height="102" style="overflow:visible;display:block;"></svg>
+    </div>
+    <div style="flex:1">
+      <div class="s-status s-stable mb20" style="margin-bottom:10px"><span class="s-dot"></span> Stable</div>
+      <div style="font-family:'DM Serif Display',serif;font-size:18px;color:#e8eef8;margin-bottom:6px;">You're holding steady, JD.</div>
+      <div style="font-size:13px;color:var(--text-dim);line-height:1.6;margin-bottom:12px;">Your patterns today look mostly balanced. There was late-night activity that pulled the score down slightly. Try winding down earlier tonight — your mind will thank you.</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <span class="badge b-bad">–6 pts: Late night usage</span>
+        <span class="badge b-warn">–3 pts: Erratic typing (1am)</span>
+        <span class="badge b-warn">–2 pts: News doomscrolling</span>
+        <span class="badge b-ok">+5 pts: Breathwrk session</span>
+        <span class="badge b-ok">+3 pts: MindGuard use</span>
+        <span class="badge b-ok">+2 pts: Normal typing</span>
+        <span class="badge b-ok">+5 pts: No heavy screen time</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card mb20">
+    <div class="ch"><div class="ct">Hour-by-Hour Score Flow</div><div class="ctag">Daily Arc</div></div>
+    <div style="display:flex;align-items:flex-end;gap:3px;height:70px;margin-bottom:8px;" id="hourly-arc"></div>
+    <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-muted)"><span>12am</span><span>4am</span><span>8am</span><span>12pm</span><span>4pm</span><span>8pm</span><span>11pm</span></div>
+  </div>
+
+  <div class="grid2 mb20">
+    <div class="card">
+      <div class="ch"><div class="ct">What We Noticed</div><div class="ctag">Observations</div></div>
+      <div class="timeline">
+        <div class="tl-item"><div class="tl-dot" style="background:rgba(248,113,113,0.1)">🌙</div><div class="tl-body"><div class="tl-time">1:20 AM – 2:45 AM</div><div class="tl-title">Late-night usage detected</div><div class="tl-desc">85 minutes of active screen time after midnight, including erratic typing bursts. This is the second consecutive night.</div></div></div>
+        <div class="tl-item"><div class="tl-dot" style="background:rgba(52,211,153,0.1)">☀️</div><div class="tl-body"><div class="tl-time">7:15 AM</div><div class="tl-title">Healthy wake-up start</div><div class="tl-desc">First phone use at 7:15 AM with calm, focused typing. Good morning rhythm.</div></div></div>
+        <div class="tl-item"><div class="tl-dot" style="background:rgba(52,211,153,0.1)">🧘</div><div class="tl-body"><div class="tl-time">10:30 AM</div><div class="tl-title">Breathwork session completed</div><div class="tl-desc">12-minute guided breathwork session — excellent self-care signal.</div></div></div>
+        <div class="tl-item"><div class="tl-dot" style="background:rgba(251,191,36,0.1)">📰</div><div class="tl-body"><div class="tl-time">2:00 PM – 2:44 PM</div><div class="tl-title">Extended news reading</div><div class="tl-desc">44 minutes of news consumption — trending toward doomscrolling territory. Monitor for tomorrow.</div></div></div>
+        <div class="tl-item"><div class="tl-dot" style="background:rgba(126,184,247,0.1)">📱</div><div class="tl-body"><div class="tl-time">Overall</div><div class="tl-title">Screen time 18% below average</div><div class="tl-desc">Total screen time of 4h 22m, well below your 30-day average of 5h 22m. A positive signal.</div></div></div>
+      </div>
+    </div>
+    <div>
+      <div class="card mb20">
+        <div class="ch"><div class="ct">Score Breakdown</div><div class="ctag">Points</div></div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <div style="display:flex;justify-content:space-between;font-size:12.5px;padding:8px;background:var(--bg3);border-radius:8px;"><span style="color:var(--text-dim)">Base score</span><span style="color:var(--text)">100</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:12.5px;padding:8px;background:rgba(248,113,113,0.05);border-radius:8px;border:1px solid rgba(248,113,113,0.1);"><span style="color:var(--danger)">Late-night usage (2× 30 min)</span><span style="color:var(--danger)">–6</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:12.5px;padding:8px;background:rgba(251,191,36,0.05);border-radius:8px;border:1px solid rgba(251,191,36,0.1);"><span style="color:var(--warn)">Erratic typing (1:30 AM burst)</span><span style="color:var(--warn)">–3</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:12.5px;padding:8px;background:rgba(251,191,36,0.05);border-radius:8px;border:1px solid rgba(251,191,36,0.1);"><span style="color:var(--warn)">News doomscrolling (44 min)</span><span style="color:var(--warn)">–2</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:12.5px;padding:8px;background:rgba(52,211,153,0.05);border-radius:8px;border:1px solid rgba(52,211,153,0.1);"><span style="color:var(--accent3)">Breathwrk session</span><span style="color:var(--accent3)">+5</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:12.5px;padding:8px;background:rgba(52,211,153,0.05);border-radius:8px;border:1px solid rgba(52,211,153,0.1);"><span style="color:var(--accent3)">MindGuard check-in</span><span style="color:var(--accent3)">+3</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:12.5px;padding:8px;background:rgba(52,211,153,0.05);border-radius:8px;border:1px solid rgba(52,211,153,0.1);"><span style="color:var(--accent3)">Screen time below average</span><span style="color:var(--accent3)">+5</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:12.5px;padding:8px;background:rgba(52,211,153,0.05);border-radius:8px;border:1px solid rgba(52,211,153,0.1);"><span style="color:var(--accent3)">Normal daytime typing</span><span style="color:var(--accent3)">+2</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:13.5px;font-weight:600;padding:10px 8px;background:var(--card2);border-radius:8px;margin-top:4px;"><span style="color:var(--text)">Final Daily Score</span><span style="color:var(--accent)">70 / 100</span></div>
+        </div>
+      </div>
+      <div class="suggest">
+        <div class="sug-ic">💡</div>
+        <div><div class="sug-t">MindGuard Recommends</div><div class="sug-d">Consider setting a "No phone after 11 PM" reminder. Two late nights in a row is a pattern worth breaking gently — your future self will notice the difference.</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== 5. WEEKLY ====== -->
+<div class="page" id="page-weekly">
+  <div class="ph">
+    <div><div class="pt">Weekly Report</div><div class="ps">Week of April 19 – 25, 2026</div></div>
+    <div class="date-pill">Week 17 of 2026</div>
+  </div>
+
+  <div class="score-hero mb20">
+    <div style="flex-shrink:0;width:200px;height:130px;">
+      <svg id="week-gauge" viewBox="-20 -55 240 185" width="200" height="128" style="overflow:visible;display:block;"></svg>
+    </div>
+    <div class="sd">
+      <div class="s-status s-stable"><span class="s-dot"></span> Stable Week</div>
+      <div class="s-title">A generally positive week.</div>
+      <div class="s-desc">Your weekly average sits at 72.3/100 — stable and within the healthy range. Tuesday was your strongest day. Friday dipped slightly due to elevated screen time and late-night activity on consecutive evenings.</div>
+      <div class="s-meta">
+        <div><div class="sm-val">82</div><div class="sm-key">Best Day (Tue)</div></div>
+        <div><div class="sm-val">65</div><div class="sm-key">Lowest Day (Fri)</div></div>
+        <div><div class="sm-val">71</div><div class="sm-key">Monthly Avg</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card mb20">
+    <div class="ch"><div class="ct">Daily Scores — This Week</div><div class="ctag">Apr 19–25</div></div>
+    <table class="tbl">
+      <tr><th>Day</th><th>Score</th><th>Status</th><th>Highlight Signal</th><th>Screen Time</th><th>App Opens</th></tr>
+      <tr><td>Monday, Apr 19</td><td><span class="score-chip" style="background:rgba(126,184,247,0.1);color:var(--accent)">76</span></td><td><span class="badge b-ok">Stable</span></td><td style="font-size:12px;color:var(--text-dim)">Normal typing, fitness app used</td><td>4h 58m</td><td>39</td></tr>
+      <tr><td>Tuesday, Apr 20</td><td><span class="score-chip" style="background:rgba(52,211,153,0.15);color:var(--accent3)">82</span></td><td><span class="badge b-ok">Flourishing</span></td><td style="font-size:12px;color:var(--text-dim)">Low screen time, meditation, no late night</td><td>3h 40m</td><td>31</td></tr>
+      <tr><td>Wednesday, Apr 21</td><td><span class="score-chip" style="background:rgba(126,184,247,0.1);color:var(--accent)">68</span></td><td><span class="badge b-ok">Stable</span></td><td style="font-size:12px;color:var(--text-dim)">Mild work-hour avoidance, normal evening</td><td>5h 12m</td><td>44</td></tr>
+      <tr><td>Thursday, Apr 22</td><td><span class="score-chip" style="background:rgba(126,184,247,0.1);color:var(--accent)">71</span></td><td><span class="badge b-ok">Stable</span></td><td style="font-size:12px;color:var(--text-dim)">Social substitution flagged (evening)</td><td>5h 05m</td><td>50</td></tr>
+      <tr><td>Friday, Apr 23</td><td><span class="score-chip" style="background:rgba(251,191,36,0.1);color:var(--warn)">65</span></td><td><span class="badge b-warn">Moderate</span></td><td style="font-size:12px;color:var(--text-dim)">Late-night usage, high screen time</td><td>6h 30m</td><td>58</td></tr>
+      <tr><td>Saturday, Apr 24</td><td><span class="score-chip" style="background:rgba(126,184,247,0.1);color:var(--accent)">74</span></td><td><span class="badge b-ok">Stable</span></td><td style="font-size:12px;color:var(--text-dim)">Breathwrk session, balanced day</td><td>4h 50m</td><td>43</td></tr>
+      <tr><td>Sunday, Apr 25 (Today)</td><td><span class="score-chip" style="background:rgba(167,139,250,0.15);color:var(--accent2)">70</span></td><td><span class="badge b-ok">Stable</span></td><td style="font-size:12px;color:var(--text-dim)">Late-night flag, below-avg screen time</td><td>4h 22m</td><td>47</td></tr>
+      <tr style="font-weight:600;"><td style="color:var(--accent)">Weekly Average</td><td><span class="score-chip" style="background:rgba(126,184,247,0.15);color:var(--accent)">72.3</span></td><td></td><td></td><td style="color:var(--accent)">4h 57m</td><td style="color:var(--accent)">44.6</td></tr>
+    </table>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <div class="ch"><div class="ct">Week-over-Week Trend</div><div class="ctag">4 weeks</div></div>
+      <div style="display:flex;align-items:flex-end;gap:16px;height:80px;margin-bottom:12px;">
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;"><div style="width:100%;height:62%;background:rgba(126,184,247,0.2);border:1px solid rgba(126,184,247,0.3);border-radius:4px 4px 0 0"></div><div style="font-size:10px;color:var(--text-muted)">W14</div><div style="font-size:11px;color:var(--text-dim)">68.1</div></div>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;"><div style="width:100%;height:70%;background:rgba(126,184,247,0.2);border:1px solid rgba(126,184,247,0.3);border-radius:4px 4px 0 0"></div><div style="font-size:10px;color:var(--text-muted)">W15</div><div style="font-size:11px;color:var(--text-dim)">70.2</div></div>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;"><div style="width:100%;height:66%;background:rgba(126,184,247,0.2);border:1px solid rgba(126,184,247,0.3);border-radius:4px 4px 0 0"></div><div style="font-size:10px;color:var(--text-muted)">W16</div><div style="font-size:11px;color:var(--text-dim)">69.5</div></div>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;"><div style="width:100%;height:72%;background:rgba(52,211,153,0.25);border:1px solid rgba(52,211,153,0.4);border-radius:4px 4px 0 0;box-shadow:0 0 10px rgba(52,211,153,0.2)"></div><div style="font-size:10px;color:var(--accent3)">W17 ✦</div><div style="font-size:11px;color:var(--accent3)">72.3</div></div>
+      </div>
+      <div class="alert-g ag" style="padding:10px 12px;"><div class="a-ic" style="font-size:14px">📈</div><div class="a-text">Your score has improved 4.2 points over the past 4 weeks. Keep it up.</div></div>
+    </div>
+    <div class="card">
+      <div class="ch"><div class="ct">Weekly Insights</div><div class="ctag">Patterns</div></div>
+      <div class="sig-list">
+        <div class="sig-item"><div class="sig-ic">🌙</div><div class="sig-tx">Late-night usage occurred on 3 out of 7 days this week (Fri, Sat, Sun)</div><div class="badge b-warn">Watch</div></div>
+        <div class="sig-item"><div class="sig-ic">🧘</div><div class="sig-tx">Breathwrk used on 3 days — a growing positive habit</div><div class="badge b-ok">Positive</div></div>
+        <div class="sig-item"><div class="sig-ic">📱</div><div class="sig-tx">Screen time fell 8% compared to last week — improvement</div><div class="badge b-ok">Improved</div></div>
+        <div class="sig-item"><div class="sig-ic">📰</div><div class="sig-tx">News app use is trending upward — 4 days with extended reading</div><div class="badge b-warn">Monitor</div></div>
+        <div class="sig-item"><div class="sig-ic">💼</div><div class="sig-tx">Work-hour avoidance noted Wednesday and Thursday</div><div class="badge b-warn">Note</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== 6. MONTHLY ====== -->
+<div class="page" id="page-monthly">
+  <div class="ph">
+    <div><div class="pt">Monthly Report</div><div class="ps">April 2026 — 25 days recorded</div></div>
+    <div class="date-pill">← March &nbsp;|&nbsp; April &nbsp;|&nbsp; May →</div>
+  </div>
+
+  <div class="score-hero mb20">
+    <div style="flex-shrink:0;width:200px;height:130px;">
+      <svg id="month-gauge" viewBox="-20 -55 240 185" width="200" height="128" style="overflow:visible;display:block;"></svg>
+    </div>
+    <div class="sd">
+      <div class="s-status s-stable"><span class="s-dot"></span> Stable Month</div>
+      <div class="s-title">April has been a steady month.</div>
+      <div class="s-desc">Monthly average of 71.2/100 — up from 68.4 in March. Your highest week was Week 2 (Apr 7–13) at 74.8. The lowest single day was April 9th at 52. Positive habits are emerging.</div>
+      <div class="s-meta">
+        <div><div class="sm-val">82</div><div class="sm-key">Best Day</div></div>
+        <div><div class="sm-val">52</div><div class="sm-key">Lowest Day</div></div>
+        <div><div class="sm-val">+2.8</div><div class="sm-key">vs March</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card mb20">
+    <div class="ch"><div class="ct">Daily Score Calendar — April 2026</div><div class="ctag">Heatmap</div></div>
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:8px;">
+      <div style="font-size:10px;color:var(--text-muted);text-align:center;padding:4px;">Mon</div>
+      <div style="font-size:10px;color:var(--text-muted);text-align:center;padding:4px;">Tue</div>
+      <div style="font-size:10px;color:var(--text-muted);text-align:center;padding:4px;">Wed</div>
+      <div style="font-size:10px;color:var(--text-muted);text-align:center;padding:4px;">Thu</div>
+      <div style="font-size:10px;color:var(--text-muted);text-align:center;padding:4px;">Fri</div>
+      <div style="font-size:10px;color:var(--text-muted);text-align:center;padding:4px;">Sat</div>
+      <div style="font-size:10px;color:var(--text-muted);text-align:center;padding:4px;">Sun</div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;" id="month-cal"></div>
+    <div style="display:flex;align-items:center;gap:8px;margin-top:12px;font-size:11px;color:var(--text-dim);">
+      <span>Lower</span>
+      <div style="display:flex;gap:2px;">
+        <div style="width:14px;height:14px;border-radius:3px;background:rgba(248,113,113,0.6)"></div>
+        <div style="width:14px;height:14px;border-radius:3px;background:rgba(251,191,36,0.5)"></div>
+        <div style="width:14px;height:14px;border-radius:3px;background:rgba(126,184,247,0.4)"></div>
+        <div style="width:14px;height:14px;border-radius:3px;background:rgba(52,211,153,0.5)"></div>
+      </div>
+      <span>Higher</span>
+    </div>
+  </div>
+
+  <div class="grid3 mb20">
+    <div class="stat-box"><div class="sv">71.2</div><div class="sk">Monthly Avg Score</div><div class="st t-up">▲ +2.8 vs March</div></div>
+    <div class="stat-box"><div class="sv" style="color:var(--accent3)">12</div><div class="sk">Days above 75</div><div class="st t-up">Flourishing days</div></div>
+    <div class="stat-box"><div class="sv" style="color:var(--danger)">2</div><div class="sk">Days below 55</div><div class="st t-dn">Concerning days</div></div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <div class="ch"><div class="ct">Monthly Trend</div><div class="ctag">4 weeks</div></div>
+      <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:8px;">
+        <div><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px;"><span style="color:var(--text-dim)">Week 1 (Apr 1–6)</span><span style="color:var(--accent)">68.9</span></div><div class="prog-wrap"><div class="prog-fill" style="width:69%;background:var(--accent)"></div></div></div>
+        <div><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px;"><span style="color:var(--text-dim)">Week 2 (Apr 7–13)</span><span style="color:var(--accent3)">74.8</span></div><div class="prog-wrap"><div class="prog-fill" style="width:75%;background:var(--accent3)"></div></div></div>
+        <div><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px;"><span style="color:var(--text-dim)">Week 3 (Apr 14–20)</span><span style="color:var(--accent)">70.5</span></div><div class="prog-wrap"><div class="prog-fill" style="width:70%;background:var(--accent)"></div></div></div>
+        <div><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px;"><span style="color:var(--accent2)">Week 4 (Apr 21–25) ✦</span><span style="color:var(--accent2)">72.3</span></div><div class="prog-wrap"><div class="prog-fill" style="width:72%;background:var(--accent2)"></div></div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ch"><div class="ct">Top Patterns This Month</div><div class="ctag">Recurring</div></div>
+      <div class="sig-list">
+        <div class="sig-item"><div class="sig-ic">🌙</div><div class="sig-tx">Late-night usage on 11 of 25 days — most common deduction</div><div class="badge b-warn">Recurring</div></div>
+        <div class="sig-item"><div class="sig-ic">🧘</div><div class="sig-tx">Breathwrk usage increasing week-over-week — great habit forming</div><div class="badge b-ok">Growing</div></div>
+        <div class="sig-item"><div class="sig-ic">📱</div><div class="sig-tx">Screen time trending downward — 8% reduction vs March average</div><div class="badge b-ok">Improving</div></div>
+        <div class="sig-item"><div class="sig-ic">💼</div><div class="sig-tx">Weekday avoidance dropped — only 4 flagged days vs 9 in March</div><div class="badge b-ok">Better</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== 7. YEARLY ====== -->
+<div class="page" id="page-yearly">
+  <div class="ph">
+    <div><div class="pt">Yearly Overview</div><div class="ps">January – April 2026 (4 months recorded)</div></div>
+    <div class="date-pill">2026</div>
+  </div>
+
+  <div class="score-hero mb20">
+    <div style="flex-shrink:0;width:200px;height:130px;">
+      <svg id="year-gauge" viewBox="-20 -55 240 185" width="200" height="128" style="overflow:visible;display:block;"></svg>
+    </div>
+    <div class="sd">
+      <div class="s-status s-stable"><span class="s-dot"></span> On Track</div>
+      <div class="s-title">A year of building healthier habits.</div>
+      <div class="s-desc">Your 2026 average sits at 68.4/100 across 4 months of data. Each month shows a modest but consistent improvement — up from 65.1 in January to 71.2 this April. You're trending in the right direction.</div>
+      <div class="s-meta">
+        <div><div class="sm-val">71.2</div><div class="sm-key">Best Month (Apr)</div></div>
+        <div><div class="sm-val">65.1</div><div class="sm-key">Lowest (Jan)</div></div>
+        <div><div class="sm-val">+6.1</div><div class="sm-key">Jan → Apr Δ</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card mb20">
+    <div class="ch"><div class="ct">Monthly Score — 2026</div><div class="ctag">Year arc</div></div>
+    <div style="display:flex;align-items:flex-end;gap:12px;height:100px;padding-bottom:8px;">
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;"><div style="width:100%;height:65%;background:rgba(248,113,113,0.2);border:1px solid rgba(248,113,113,0.3);border-radius:4px 4px 0 0"></div><div style="font-size:11px;color:var(--text-muted)">Jan</div><div style="font-size:12px;color:var(--text-dim)">65.1</div></div>
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;"><div style="width:100%;height:67%;background:rgba(251,191,36,0.2);border:1px solid rgba(251,191,36,0.3);border-radius:4px 4px 0 0"></div><div style="font-size:11px;color:var(--text-muted)">Feb</div><div style="font-size:12px;color:var(--text-dim)">67.2</div></div>
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;"><div style="width:100%;height:68%;background:rgba(126,184,247,0.2);border:1px solid rgba(126,184,247,0.3);border-radius:4px 4px 0 0"></div><div style="font-size:11px;color:var(--text-muted)">Mar</div><div style="font-size:12px;color:var(--text-dim)">68.4</div></div>
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;"><div style="width:100%;height:71%;background:rgba(52,211,153,0.25);border:1px solid rgba(52,211,153,0.4);border-radius:4px 4px 0 0;box-shadow:0 0 12px rgba(52,211,153,0.2)"></div><div style="font-size:11px;color:var(--accent3)">Apr ✦</div><div style="font-size:12px;color:var(--accent3)">71.2</div></div>
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;"><div style="width:100%;height:20%;background:var(--bg3);border:1px dashed var(--border2);border-radius:4px 4px 0 0"></div><div style="font-size:11px;color:var(--text-muted)">May</div><div style="font-size:12px;color:var(--text-muted)">—</div></div>
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;"><div style="width:100%;height:20%;background:var(--bg3);border:1px dashed var(--border2);border-radius:4px 4px 0 0"></div><div style="font-size:11px;color:var(--text-muted)">Jun</div><div style="font-size:12px;color:var(--text-muted)">—</div></div>
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;"><div style="width:100%;height:20%;background:var(--bg3);border:1px dashed var(--border2);border-radius:4px 4px 0 0"></div><div style="font-size:11px;color:var(--text-muted)">Jul</div><div style="font-size:12px;color:var(--text-muted)">—</div></div>
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;"><div style="width:100%;height:20%;background:var(--bg3);border:1px dashed var(--border2);border-radius:4px 4px 0 0"></div><div style="font-size:11px;color:var(--text-muted)">Aug</div><div style="font-size:12px;color:var(--text-muted)">—</div></div>
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;"><div style="width:100%;height:20%;background:var(--bg3);border:1px dashed var(--border2);border-radius:4px 4px 0 0"></div><div style="font-size:11px;color:var(--text-muted)">Sep</div><div style="font-size:12px;color:var(--text-muted)">—</div></div>
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;"><div style="width:100%;height:20%;background:var(--bg3);border:1px dashed var(--border2);border-radius:4px 4px 0 0"></div><div style="font-size:11px;color:var(--text-muted)">Oct</div><div style="font-size:12px;color:var(--text-muted)">—</div></div>
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;"><div style="width:100%;height:20%;background:var(--bg3);border:1px dashed var(--border2);border-radius:4px 4px 0 0"></div><div style="font-size:11px;color:var(--text-muted)">Nov</div><div style="font-size:12px;color:var(--text-muted)">—</div></div>
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;"><div style="width:100%;height:20%;background:var(--bg3);border:1px dashed var(--border2);border-radius:4px 4px 0 0"></div><div style="font-size:11px;color:var(--text-muted)">Dec</div><div style="font-size:12px;color:var(--text-muted)">—</div></div>
+    </div>
+    <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">↑ Consistent improvement trend (+1.5 avg per month). Projected May average: ~72.5</div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <div class="ch"><div class="ct">2026 Key Milestones</div><div class="ctag">Your journey</div></div>
+      <div class="timeline">
+        <div class="tl-item"><div class="tl-dot" style="background:rgba(248,113,113,0.1)">📍</div><div class="tl-body"><div class="tl-time">January 1</div><div class="tl-title">MindGuard monitoring began</div><div class="tl-desc">Starting score: 65 — high late-night usage and screen time patterns identified.</div></div></div>
+        <div class="tl-item"><div class="tl-dot" style="background:rgba(251,191,36,0.1)">📈</div><div class="tl-body"><div class="tl-time">February 14</div><div class="tl-title">First 80+ day achieved</div><div class="tl-desc">Score of 81 — first time above 80. Very low screen time, breathwrk session, early bedtime.</div></div></div>
+        <div class="tl-item"><div class="tl-dot" style="background:rgba(52,211,153,0.1)">🧘</div><div class="tl-body"><div class="tl-time">March 3</div><div class="tl-title">Breathwrk habit began</div><div class="tl-desc">First week of 3+ breathwork sessions — positive habit formation detected.</div></div></div>
+        <div class="tl-item"><div class="tl-dot" style="background:rgba(126,184,247,0.1)">✦</div><div class="tl-body"><div class="tl-time">April 2026</div><div class="tl-title">Best monthly average yet</div><div class="tl-desc">71.2 — your highest monthly average. Screen time and late-night patterns both improving.</div></div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ch"><div class="ct">Yearly Habit Report</div><div class="ctag">2026</div></div>
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div style="padding:12px;background:var(--bg3);border-radius:10px;"><div style="font-size:12px;color:var(--text-dim);margin-bottom:4px;">🌙 Late-night usage days</div><div style="display:flex;align-items:baseline;gap:6px;"><div style="font-family:'DM Serif Display',serif;font-size:24px;color:var(--warn)">38</div><div style="font-size:12px;color:var(--text-muted)">/ 116 days tracked (33%)</div></div><div style="font-size:11px;color:var(--accent3);margin-top:2px;">↓ Dropping month over month</div></div>
+        <div style="padding:12px;background:var(--bg3);border-radius:10px;"><div style="font-size:12px;color:var(--text-dim);margin-bottom:4px;">🧘 Wellness app sessions</div><div style="display:flex;align-items:baseline;gap:6px;"><div style="font-family:'DM Serif Display',serif;font-size:24px;color:var(--accent3)">52</div><div style="font-size:12px;color:var(--text-muted)">sessions total</div></div><div style="font-size:11px;color:var(--accent3);margin-top:2px;">↑ Increasing each month</div></div>
+        <div style="padding:12px;background:var(--bg3);border-radius:10px;"><div style="font-size:12px;color:var(--text-dim);margin-bottom:4px;">📱 Avg daily screen time</div><div style="display:flex;align-items:baseline;gap:6px;"><div style="font-family:'DM Serif Display',serif;font-size:24px;color:var(--accent)">5h 6m</div></div><div style="font-size:11px;color:var(--accent3);margin-top:2px;">↓ Down from 6h 20m in January</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== 8. ALERTS ====== -->
+<div class="page" id="page-alerts">
+  <div class="ph">
+    <div><div class="pt">Alerts & Notifications</div><div class="ps">Guardian alerts, flags, and system events</div></div>
+    <div class="date-pill">2 unread</div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active">All</div>
+    <div class="tab">Guardian Sent</div>
+    <div class="tab">Resolved</div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:12px;">
+    <div class="card" style="border-left:3px solid var(--warn);">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+        <div style="display:flex;align-items:center;gap:8px;"><span style="font-size:18px">⚠️</span><div style="font-size:13px;font-weight:500;color:var(--warn)">Yellow Alert — Guardian Notified</div></div>
+        <div style="display:flex;gap:8px;align-items:center;"><span style="font-size:11px;color:var(--text-muted)">Today, 7:00 AM</span><span class="badge b-warn">Unread</span></div>
+      </div>
+      <div style="font-size:13px;color:var(--text-dim);line-height:1.6;margin-bottom:12px;">JD's MindGuard wellness score has dropped to 70/100 following late-night activity for 2 consecutive nights. Meena was sent a gentle summary and a suggestion to reach out with care and support.</div>
+      <div style="display:flex;gap:8px;"><button class="btn btn-ghost btn-sm">View Message Sent</button><button class="btn btn-ghost btn-sm">Mark Resolved</button></div>
+    </div>
+
+    <div class="card" style="border-left:3px solid var(--accent2);">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+        <div style="display:flex;align-items:center;gap:8px;"><span style="font-size:18px">📊</span><div style="font-size:13px;font-weight:500;color:var(--accent2)">Weekly Report Sent</div></div>
+        <div style="display:flex;gap:8px;align-items:center;"><span style="font-size:11px;color:var(--text-muted)">Today, 8:00 AM</span><span class="badge b-info">Unread</span></div>
+      </div>
+      <div style="font-size:13px;color:var(--text-dim);line-height:1.6;margin-bottom:12px;">Weekly summary report for Week 17 (Apr 19–25) was sent to Meena and Rajan. Average score: 72.3/100. Trend: Stable. No urgent flags. Recommendation included: "Plan a shared activity together this week."</div>
+      <div style="display:flex;gap:8px;"><button class="btn btn-ghost btn-sm">View Report Sent</button><button class="btn btn-ghost btn-sm">Mark Read</button></div>
+    </div>
+
+    <div class="card" style="opacity:0.6;border-left:3px solid var(--border2);">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+        <div style="display:flex;align-items:center;gap:8px;"><span style="font-size:18px">✅</span><div style="font-size:13px;font-weight:500;color:var(--text-dim)">Alert Resolved — Score Recovered</div></div>
+        <div style="display:flex;gap:8px;align-items:center;"><span style="font-size:11px;color:var(--text-muted)">Apr 22, 9:00 AM</span><span class="badge" style="background:var(--bg3);color:var(--text-muted)">Resolved</span></div>
+      </div>
+      <div style="font-size:13px;color:var(--text-muted);line-height:1.6;">Score dropped to 61 on April 21 triggering a watch. Score recovered to 71 on April 22. Alert auto-resolved.</div>
+    </div>
+
+    <div class="card" style="opacity:0.6;border-left:3px solid var(--border2);">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+        <div style="display:flex;align-items:center;gap:8px;"><span style="font-size:18px">📅</span><div style="font-size:13px;font-weight:500;color:var(--text-dim)">Monthly Report — March 2026</div></div>
+        <div style="display:flex;gap:8px;align-items:center;"><span style="font-size:11px;color:var(--text-muted)">Apr 1, 8:00 AM</span><span class="badge" style="background:var(--bg3);color:var(--text-muted)">Read</span></div>
+      </div>
+      <div style="font-size:13px;color:var(--text-muted);line-height:1.6;">March monthly report sent to both guardians. Average: 68.4/100. Trend: Improving. Recommendation: "Encourage outdoor activity and regular sleep schedule."</div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== 9. GUARDIANS ====== -->
+<div class="page" id="page-guardian">
+  <div class="ph">
+    <div><div class="pt">Guardian Management</div><div class="ps">Manage who receives your wellness reports and alerts</div></div>
+    <div class="date-pill"><button class="btn btn-primary btn-sm">+ Add Guardian</button></div>
+  </div>
+
+  <div class="alert-g ag mb20">
+    <div class="a-ic">🛡</div>
+    <div><div class="a-title" style="color:var(--accent3)">Privacy Guaranteed</div><div class="a-text">Guardians only see your aggregate wellness score, trend direction, and alert-level descriptions. They never see raw app usage data, typing patterns, or any personal content.</div></div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:16px;margin-bottom:28px;">
+    <div class="card g-card">
+      <div style="display:flex;gap:16px;align-items:flex-start;">
+        <div class="g-ava" style="background:rgba(52,211,153,0.1);width:48px;height:48px;font-size:20px;">👩</div>
+        <div style="flex:1;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <div style="font-family:'DM Serif Display',serif;font-size:17px;color:#e8eef8;">Meena K.</div>
+            <span class="badge b-ok">Active</span>
+          </div>
+          <div style="font-size:12.5px;color:var(--text-dim);margin-bottom:12px;">Mother · +91 98765 43210 · meena.k@gmail.com</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+            <div style="padding:10px;background:rgba(255,255,255,0.03);border-radius:8px;border:1px solid var(--border);"><div style="font-size:10px;color:var(--text-muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.06em">Reports</div><div style="font-size:12.5px;color:var(--text)">Daily + Weekly + Monthly</div></div>
+            <div style="padding:10px;background:rgba(255,255,255,0.03);border-radius:8px;border:1px solid var(--border);"><div style="font-size:10px;color:var(--text-muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.06em">Alerts</div><div style="font-size:12.5px;color:var(--text)">Yellow + Red</div></div>
+            <div style="padding:10px;background:rgba(255,255,255,0.03);border-radius:8px;border:1px solid var(--border);"><div style="font-size:10px;color:var(--text-muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.06em">Last Notified</div><div style="font-size:12.5px;color:var(--warn)">Today, 7:00 AM</div></div>
+            <div style="padding:10px;background:rgba(255,255,255,0.03);border-radius:8px;border:1px solid var(--border);"><div style="font-size:10px;color:var(--text-muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.06em">Guardian Since</div><div style="font-size:12.5px;color:var(--text)">Jan 1, 2026</div></div>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-ghost btn-sm">Edit</button>
+            <button class="btn btn-ghost btn-sm">Pause Alerts</button>
+            <button class="btn btn-danger btn-sm">Remove</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card g-card">
+      <div style="display:flex;gap:16px;align-items:flex-start;">
+        <div class="g-ava" style="background:rgba(126,184,247,0.1);width:48px;height:48px;font-size:20px;">👨</div>
+        <div style="flex:1;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <div style="font-family:'DM Serif Display',serif;font-size:17px;color:#e8eef8;">Rajan K.</div>
+            <span class="badge b-ok">Active</span>
+          </div>
+          <div style="font-size:12.5px;color:var(--text-dim);margin-bottom:12px;">Father · +91 99887 65432 · rajan.k@gmail.com</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+            <div style="padding:10px;background:rgba(255,255,255,0.03);border-radius:8px;border:1px solid var(--border);"><div style="font-size:10px;color:var(--text-muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.06em">Reports</div><div style="font-size:12.5px;color:var(--text)">Weekly + Monthly</div></div>
+            <div style="padding:10px;background:rgba(255,255,255,0.03);border-radius:8px;border:1px solid var(--border);"><div style="font-size:10px;color:var(--text-muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.06em">Alerts</div><div style="font-size:12.5px;color:var(--text)">Red only</div></div>
+            <div style="padding:10px;background:rgba(255,255,255,0.03);border-radius:8px;border:1px solid var(--border);"><div style="font-size:10px;color:var(--text-muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.06em">Last Notified</div><div style="font-size:12.5px;color:var(--accent3)">Weekly report today</div></div>
+            <div style="padding:10px;background:rgba(255,255,255,0.03);border-radius:8px;border:1px solid var(--border);"><div style="font-size:10px;color:var(--text-muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.06em">Guardian Since</div><div style="font-size:12.5px;color:var(--text)">Jan 1, 2026</div></div>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-ghost btn-sm">Edit</button>
+            <button class="btn btn-ghost btn-sm">Pause Alerts</button>
+            <button class="btn btn-danger btn-sm">Remove</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ch"><div class="ct">Alert Threshold Settings</div><div class="ctag">Customise</div></div>
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:var(--bg3);border-radius:10px;">
+        <div><div style="font-size:13px;color:var(--text)">🟡 Yellow alert threshold</div><div style="font-size:11px;color:var(--text-dim);margin-top:2px;">Notify guardian when score drops below this for 3 consecutive days</div></div>
+        <div style="display:flex;align-items:center;gap:10px;"><span style="font-size:13px;color:var(--warn);font-weight:500">45 pts</span><button class="btn btn-ghost btn-sm">Edit</button></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:var(--bg3);border-radius:10px;">
+        <div><div style="font-size:13px;color:var(--text)">🔴 Red alert threshold</div><div style="font-size:11px;color:var(--text-dim);margin-top:2px;">Immediate urgent notification to all guardians</div></div>
+        <div style="display:flex;align-items:center;gap:10px;"><span style="font-size:13px;color:var(--danger);font-weight:500">20 pts</span><button class="btn btn-ghost btn-sm">Edit</button></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:var(--bg3);border-radius:10px;">
+        <div><div style="font-size:13px;color:var(--text)">Weekly report day</div><div style="font-size:11px;color:var(--text-dim);margin-top:2px;">Sent to all active guardians</div></div>
+        <div style="display:flex;align-items:center;gap:10px;"><span style="font-size:13px;color:var(--accent);font-weight:500">Sunday 8:00 AM</span><button class="btn btn-ghost btn-sm">Edit</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== 10. GUARDIAN VIEW ====== -->
+<div class="page" id="page-guardian-view">
+  <div class="ph">
+    <div><div class="pt">Guardian View</div><div class="ps">This is exactly what Meena sees in her MindGuard Guardian portal</div></div>
+    <div class="date-pill">Preview Mode</div>
+  </div>
+
+  <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:28px;max-width:680px;">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid var(--border);">
+      <div style="width:38px;height:38px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;">🧠</div>
+      <div><div style="font-family:'DM Serif Display',serif;font-size:17px;color:#e8eef8;">MindGuard Guardian Report</div><div style="font-size:11.5px;color:var(--text-dim);">For Meena K. — Week ending April 25, 2026</div></div>
+    </div>
+
+    <div style="text-align:center;padding:24px;background:var(--bg3);border-radius:16px;margin-bottom:20px;">
+      <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px;">JD's Wellness Score This Week</div>
+      <div style="font-family:'DM Serif Display',serif;font-size:52px;color:var(--accent);letter-spacing:-0.03em;line-height:1;">72</div>
+      <div style="font-size:13px;color:var(--text-dim);margin-top:4px;">out of 100 — <span style="color:var(--accent3)">Stable</span></div>
+      <div style="display:flex;justify-content:center;gap:4px;margin-top:16px;">
+        <div style="width:28px;height:6px;border-radius:3px;background:rgba(126,184,247,0.4)"></div>
+        <div style="width:28px;height:6px;border-radius:3px;background:rgba(52,211,153,0.6)"></div>
+        <div style="width:28px;height:6px;border-radius:3px;background:rgba(126,184,247,0.4)"></div>
+        <div style="width:28px;height:6px;border-radius:3px;background:rgba(251,191,36,0.4)"></div>
+        <div style="width:28px;height:6px;border-radius:3px;background:rgba(126,184,247,0.4)"></div>
+        <div style="width:28px;height:6px;border-radius:3px;background:rgba(167,139,250,0.5)"></div>
+        <div style="width:28px;height:6px;border-radius:3px;background:rgba(126,184,247,0.3)"></div>
+      </div>
+      <div style="font-size:10px;color:var(--text-muted);margin-top:6px;">Mon → Sun this week</div>
+    </div>
+
+    <div style="margin-bottom:20px;">
+      <div style="font-size:12px;font-weight:500;color:var(--text);margin-bottom:10px;">What we noticed this week:</div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div style="display:flex;gap:10px;padding:10px;background:var(--bg3);border-radius:8px;font-size:12.5px;color:var(--text-dim);"><span>🌙</span><span>JD has been staying up later than usual on some nights. This can affect mood and energy the next day.</span></div>
+        <div style="display:flex;gap:10px;padding:10px;background:var(--bg3);border-radius:8px;font-size:12.5px;color:var(--text-dim);"><span>🧘</span><span>He's been using a wellness app regularly — a positive sign of self-awareness and self-care.</span></div>
+        <div style="display:flex;gap:10px;padding:10px;background:var(--bg3);border-radius:8px;font-size:12.5px;color:var(--text-dim);"><span>📱</span><span>Overall screen time is lower than his personal average — a good improvement.</span></div>
+      </div>
+    </div>
+
+    <div style="padding:16px;background:rgba(126,184,247,0.06);border:1px solid rgba(126,184,247,0.15);border-radius:12px;margin-bottom:20px;">
+      <div style="font-size:12px;font-weight:500;color:var(--accent);margin-bottom:6px;">💙 A suggestion for you, Meena:</div>
+      <div style="font-size:12.5px;color:var(--text-dim);line-height:1.6;">JD's week has been steady but he's had a couple of late nights. A simple check-in call or planning something fun together this week could be a lovely show of support — even just sharing a meal or a walk.</div>
+    </div>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--text-muted);border-top:1px solid var(--border);padding-top:16px;">
+      <span>MindGuard · Behavioural Wellness</span>
+      <span>Privacy: Summary only — no raw data</span>
+    </div>
+  </div>
+</div>
+
+<!-- ====== 11. SETTINGS ====== -->
+<div class="page" id="page-settings">
+  <div class="ph">
+    <div><div class="pt">Settings</div><div class="ps">Monitoring, privacy, and notification preferences</div></div>
+    <div class="date-pill"><button class="btn btn-primary btn-sm">Save Changes</button></div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:20px;">
+    <!-- MONITORING -->
+    <div class="card">
+      <div class="ch"><div class="ct">🔍 Monitoring Settings</div></div>
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:var(--bg3);border-radius:10px;">
+          <div><div style="font-size:13px;color:var(--text)">Active monitoring</div><div style="font-size:11px;color:var(--text-dim);margin-top:2px;">MindGuard watches behavioural signals in the background</div></div>
+          <label class="toggle"><input type="checkbox" checked><span class="toggle-sl"></span></label>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:var(--bg3);border-radius:10px;">
+          <div><div style="font-size:13px;color:var(--text)">Typing speed analysis</div><div style="font-size:11px;color:var(--text-dim);margin-top:2px;">Monitors typing rhythm — not content</div></div>
+          <label class="toggle"><input type="checkbox" checked><span class="toggle-sl"></span></label>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:var(--bg3);border-radius:10px;">
+          <div><div style="font-size:13px;color:var(--text)">App open frequency tracking</div><div style="font-size:11px;color:var(--text-dim);margin-top:2px;">Counts how many times you open each app</div></div>
+          <label class="toggle"><input type="checkbox" checked><span class="toggle-sl"></span></label>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:var(--bg3);border-radius:10px;">
+          <div><div style="font-size:13px;color:var(--text)">Time-of-day analysis</div><div style="font-size:11px;color:var(--text-dim);margin-top:2px;">Detects late-night and irregular usage patterns</div></div>
+          <label class="toggle"><input type="checkbox" checked><span class="toggle-sl"></span></label>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:var(--bg3);border-radius:10px;">
+          <div><div style="font-size:13px;color:var(--text)">Work-hour usage detection</div><div style="font-size:11px;color:var(--text-dim);margin-top:2px;">Monitors 9 AM–5 PM weekday patterns</div></div>
+          <label class="toggle"><input type="checkbox" checked><span class="toggle-sl"></span></label>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:var(--bg3);border-radius:10px;">
+          <div><div style="font-size:13px;color:var(--text)">Self-report mood check-ins</div><div style="font-size:11px;color:var(--text-dim);margin-top:2px;">Optional daily emoji mood input</div></div>
+          <label class="toggle"><input type="checkbox" checked><span class="toggle-sl"></span></label>
+        </div>
+      </div>
+    </div>
+
+    <!-- NOTIFICATIONS -->
+    <div class="card">
+      <div class="ch"><div class="ct">🔔 Wellness Nudges</div></div>
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:var(--bg3);border-radius:10px;">
+          <div><div style="font-size:13px;color:var(--text)">Wind-down reminder</div><div style="font-size:11px;color:var(--text-dim);margin-top:2px;">Remind me to put the phone down at night</div></div>
+          <div style="display:flex;align-items:center;gap:10px;"><span style="font-size:12px;color:var(--accent)">10:30 PM</span><label class="toggle"><input type="checkbox" checked><span class="toggle-sl"></span></label></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:var(--bg3);border-radius:10px;">
+          <div><div style="font-size:13px;color:var(--text)">Break reminders</div><div style="font-size:11px;color:var(--text-dim);margin-top:2px;">Nudge after compulsive app usage detected</div></div>
+          <label class="toggle"><input type="checkbox" checked><span class="toggle-sl"></span></label>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:var(--bg3);border-radius:10px;">
+          <div><div style="font-size:13px;color:var(--text)">Daily score notification</div><div style="font-size:11px;color:var(--text-dim);margin-top:2px;">Push notification with your daily score at</div></div>
+          <div style="display:flex;align-items:center;gap:10px;"><span style="font-size:12px;color:var(--accent)">8:00 PM</span><label class="toggle"><input type="checkbox" checked><span class="toggle-sl"></span></label></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:var(--bg3);border-radius:10px;">
+          <div><div style="font-size:13px;color:var(--text)">Positive milestone alerts</div><div style="font-size:11px;color:var(--text-dim);margin-top:2px;">Celebrate score improvements and new highs</div></div>
+          <label class="toggle"><input type="checkbox" checked><span class="toggle-sl"></span></label>
+        </div>
+      </div>
+    </div>
+
+    <!-- PRIVACY -->
+    <div class="card">
+      <div class="ch"><div class="ct">🔒 Privacy & Data</div></div>
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div style="padding:14px;background:rgba(52,211,153,0.05);border:1px solid rgba(52,211,153,0.15);border-radius:10px;">
+          <div style="font-size:13px;color:var(--accent3);font-weight:500;margin-bottom:6px;">Your Privacy Guarantees</div>
+          <div style="display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--text-dim);">
+            <div>✓ No message or app content is ever read or stored</div>
+            <div>✓ All processing is on-device or end-to-end encrypted</div>
+            <div>✓ Guardians see summary scores only — never raw data</div>
+            <div>✓ You can pause or delete all data at any time</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;">
+          <button class="btn btn-ghost" style="flex:1">Export My Data</button>
+          <button class="btn btn-ghost" style="flex:1">Pause Monitoring</button>
+          <button class="btn btn-danger" style="flex:1">Delete All Data</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROFILE -->
+    <div class="card">
+      <div class="ch"><div class="ct">👤 Profile</div></div>
+      <div class="grid2" style="margin-bottom:14px;">
+        <div class="inp-grp"><div class="inp-lbl">Full Name</div><input class="inp" value="JD"></div>
+        <div class="inp-grp"><div class="inp-lbl">Date of Birth</div><input class="inp" value="15 March 1998"></div>
+        <div class="inp-grp"><div class="inp-lbl">Email</div><input class="inp" value="jd@email.com"></div>
+        <div class="inp-grp"><div class="inp-lbl">Phone</div><input class="inp" value="+91 98765 12345"></div>
+      </div>
+      <div class="inp-grp"><div class="inp-lbl">Work Hours (for weekday analysis)</div>
+        <div style="display:flex;gap:10px;"><input class="inp" value="09:00 AM" style="flex:1"><span style="color:var(--text-dim);line-height:42px;">to</span><input class="inp" value="05:00 PM" style="flex:1"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== 12. ONBOARDING ====== -->
+<div class="page" id="page-onboarding">
+  <div style="max-width:560px;margin:0 auto;padding:20px 0;">
+    <div style="text-align:center;margin-bottom:32px;">
+      <div style="width:64px;height:64px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:30px;margin:0 auto 16px;box-shadow:0 0 30px rgba(126,184,247,0.25);">🧠</div>
+      <div style="font-family:'DM Serif Display',serif;font-size:28px;color:#e8eef8;margin-bottom:6px;">Welcome to MindGuard</div>
+      <div style="font-size:14px;color:var(--text-dim);">Your quiet, caring behavioural wellness companion</div>
+    </div>
+
+    <div class="onboard-steps">
+      <div class="ob-step done"></div>
+      <div class="ob-step done"></div>
+      <div class="ob-step active"></div>
+      <div class="ob-step"></div>
+    </div>
+
+    <div class="card mb20">
+      <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;">Step 3 of 4</div>
+      <div style="font-family:'DM Serif Display',serif;font-size:20px;color:#e8eef8;margin-bottom:8px;">Add your first guardian</div>
+      <div style="font-size:13px;color:var(--text-dim);line-height:1.6;margin-bottom:20px;">A guardian is someone you trust — a parent, sibling, or close friend — who will receive gentle weekly summaries of your wellness and alerts if your score drops significantly.</div>
+
+      <div class="inp-grp"><div class="inp-lbl">Guardian's Name</div><input class="inp" placeholder="e.g. Meena Kumar"></div>
+      <div class="inp-grp"><div class="inp-lbl">Relationship</div>
+        <select class="sel"><option>Mother</option><option>Father</option><option>Sibling</option><option>Partner</option><option>Friend</option><option>Counsellor</option></select>
+      </div>
+      <div class="inp-grp"><div class="inp-lbl">Email</div><input class="inp" placeholder="guardian@email.com"></div>
+      <div class="inp-grp"><div class="inp-lbl">Phone (optional)</div><input class="inp" placeholder="+91 98765 43210"></div>
+
+      <div style="background:var(--bg3);border-radius:10px;padding:14px;margin-bottom:20px;">
+        <div style="font-size:12px;font-weight:500;color:var(--text);margin-bottom:8px;">What your guardian will receive:</div>
+        <div style="display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--text-dim);">
+          <div>📊 Weekly wellness summary (score + 3 behaviour notes)</div>
+          <div>🟡 Gentle alert if your score drops below 45 for 3 days</div>
+          <div>🔴 Urgent alert if your score falls below 20</div>
+          <div>🔒 Never: raw data, app names, or content of any kind</div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;">
+        <button class="btn btn-ghost" style="flex:1">← Back</button>
+        <button class="btn btn-primary" style="flex:2">Send Guardian Invite →</button>
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:8px;justify-content:center;font-size:12px;color:var(--text-muted);">
+      <span style="width:6px;height:6px;border-radius:50%;background:var(--accent3)"></span>
+      <span>MindGuard never shares your personal content or raw data</span>
+    </div>
+  </div>
+</div>
+
+</main>
+</div>
+
+<script>
+// ====== NAVIGATION ======
+const navItems = document.querySelectorAll('.nav-item[data-page]');
+const pages = document.querySelectorAll('.page');
+
+function goTo(pageId) {
+  pages.forEach(p => p.classList.remove('active'));
+  navItems.forEach(n => n.classList.remove('active'));
+  const page = document.getElementById('page-' + pageId);
+  if (page) { page.classList.add('active'); initPage(pageId); }
+  navItems.forEach(n => { if (n.dataset.page === pageId) n.classList.add('active'); });
+}
+
+navItems.forEach(item => item.addEventListener('click', () => goTo(item.dataset.page)));
+
+// ====== SPEEDOMETER GAUGE ======
+// Flat semicircle: LOW=0 at left (180°), HIGH=100 at right (0°)
+// Arc opens UPWARD. Pivot at bottom-centre of the semicircle.
+// SVG coords: cx=100, cy=90 (pivot), r=72
+// Angle mapping: score 0 → 180° (left), score 100 → 0° (right)
+// Arc drawn counter-clockwise (sweep=0) from 180° → 0° over the top.
+
+function drawGauge(svgId, score, animated) {
+  const svg = document.getElementById(svgId);
+  if (!svg) return;
+
+  // ── Geometry ──────────────────────────────────────────────────────────────
+  // The arc is defined in "natural" SVG space where the semicircle opens DOWNWARD
+  // (pivot at top-centre cy=30, arc bows downward). We then wrap everything in a
+  // rotate(180, cx, cy) group so the arc flips to open UPWARD — exactly like the
+  // cortisol image. Text nodes are placed OUTSIDE the rotated group and positioned
+  // in final (unrotated) screen space so they always read correctly.
+
+  const cx = 100, cy = 30, r = 72;   // pivot at top-centre in natural space
+  const SVG_H = 130;                  // total viewBox height
+
+  function toRad(d) { return d * Math.PI / 180; }
+
+  // After 180° rotation around (cx, cy):
+  //   a point (x, y) maps to (2*cx - x,  2*cy - y)
+  // The pivot itself stays at (cx, cy) → screen (cx, cy) = (100, 30)
+  // The arc, which bowed downward in natural space, now bows upward in screen space.
+  // Score 0 → needle points LEFT  (angle 0°  in natural = angle 180° on screen)
+  // Score 100 → needle points RIGHT (angle 180° in natural = angle 0° on screen)
+
+  // Natural angle for score s: 0° (right) at score=0, 180° (left) at score=100
+  // But we want LOW on left and HIGH on right after rotation, so:
+  //   score=0   → natural angle 0°   → after rotation: 180° (left) ✓ LOW
+  //   score=100 → natural angle 180° → after rotation: 0°   (right) ✓ HIGH
+  function scoreToNaturalAngle(s) { return s * 1.8; } // 0→0°, 100→180°
+
+  function ptAt(deg) {
+    return { x: cx + r * Math.cos(toRad(deg)), y: cy + r * Math.sin(toRad(deg)) };
+  }
+
+  // Arc clockwise (sweep=1) from a1 to a2 in natural space
+  function arcPath(a1, a2) {
+    const s = ptAt(a1), e = ptAt(a2);
+    const span = a2 - a1;
+    const large = span > 180 ? 1 : 0;
+    return `M ${s.x.toFixed(2)} ${s.y.toFixed(2)} A ${r} ${r} 0 ${large} 1 ${e.x.toFixed(2)} ${e.y.toFixed(2)}`;
+  }
+
+  // ── Colours ───────────────────────────────────────────────────────────────
+  const bands = [
+    { a1:   0, a2:  36, color: '#ef4444' }, // score 0–20   Critical    (left after flip)
+    { a1:  36, a2:  72, color: '#f97316' }, // score 20–40  Concerning
+    { a1:  72, a2: 108, color: '#eab308' }, // score 40–60  Moderate
+    { a1: 108, a2: 144, color: '#60a5fa' }, // score 60–80  Stable
+    { a1: 144, a2: 180, color: '#34d399' }, // score 80–100 Flourishing (right after flip)
+  ];
+
+  const sc = score >= 80 ? '#34d399' : score >= 60 ? '#60a5fa' : score >= 40 ? '#eab308' : score >= 20 ? '#f97316' : '#ef4444';
+
+  // ── Needle angle in natural space (before rotation group) ─────────────────
+  const naturalAngleFinal = scoreToNaturalAngle(score); // 0°–180°
+  const naturalAngleStart = 0;                           // start at LOW (score=0)
+  const nLen = r - 10;
+  const needleId = `nd-${svgId}`;
+
+  // ── Build SVG ─────────────────────────────────────────────────────────────
+  let html = `<defs>
+    <filter id="ns${svgId}"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-color="rgba(0,0,0,0.8)"/></filter>
+    <filter id="gw${svgId}"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>`;
+
+  // ── ROTATED GROUP: arc + needle (all flipped 180° around pivot) ───────────
+  html += `<g transform="rotate(180 ${cx} ${cy})">`;
+
+  // Background track
+  html += `<path d="${arcPath(0, 180)}" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="18" stroke-linecap="round"/>`;
+
+  // Colour bands
+  bands.forEach(b => {
+    html += `<path d="${arcPath(b.a1, b.a2)}" fill="none" stroke="${b.color}" stroke-width="14" stroke-linecap="butt" opacity="0.88"/>`;
+  });
+
+  // Gap dividers at 36°, 72°, 108°, 144° (natural space)
+  [36, 72, 108, 144].forEach(deg => {
+    const ri = r - 9, ro = r + 9, rad = toRad(deg);
+    const ix = cx + ri * Math.cos(rad), iy = cy + ri * Math.sin(rad);
+    const ox = cx + ro * Math.cos(rad), oy = cy + ro * Math.sin(rad);
+    html += `<line x1="${ix.toFixed(1)}" y1="${iy.toFixed(1)}" x2="${ox.toFixed(1)}" y2="${oy.toFixed(1)}" stroke="#0a0c10" stroke-width="3.5"/>`;
+  });
+
+  // Needle (inside rotated group — rotation flips it correctly)
+  const startRad = toRad(naturalAngleStart);
+  const finalRad = toRad(naturalAngleFinal);
+  if (animated) {
+    html += `<line id="${needleId}"
+      x1="${cx}" y1="${cy}"
+      x2="${(cx + nLen * Math.cos(startRad)).toFixed(2)}"
+      y2="${(cy + nLen * Math.sin(startRad)).toFixed(2)}"
+      stroke="#dde8f8" stroke-width="2.8" stroke-linecap="round" filter="url(#ns${svgId})"/>`;
+  } else {
+    html += `<line x1="${cx}" y1="${cy}"
+      x2="${(cx + nLen * Math.cos(finalRad)).toFixed(2)}"
+      y2="${(cy + nLen * Math.sin(finalRad)).toFixed(2)}"
+      stroke="#dde8f8" stroke-width="2.8" stroke-linecap="round" filter="url(#ns${svgId})"/>`;
+  }
+
+  html += `</g>`; // end rotated group
+
+  // ── PIVOT HUB (not rotated — stays centred at pivot screen position) ──────
+  // After rotation pivot (cx, cy=30) stays at screen (100, 30).
+  // Arc bows upward → the flat base is at y=30, arc top at y=30-72=-42 (clipped above).
+  // We want the hub and labels in screen space below the arc's flat base.
+  // Screen pivot = (cx, cy) = (100, 30) → hub sits right there on the diameter line.
+  html += `<circle cx="${cx}" cy="${cy}" r="9" fill="#141820" stroke="${sc}" stroke-width="2.2" filter="url(#gw${svgId})"/>`;
+  html += `<circle cx="${cx}" cy="${cy}" r="3.5" fill="${sc}"/>`;
+
+  // ── TICK LABELS (screen space, counter-rotated positions) ─────────────────
+  // After rotate(180, cx, cy), a natural point (x,y) lands at screen (2cx-x, 2cy-y).
+  // We place tick labels at screen positions corresponding to arc outer edge.
+  // Natural angles: 0°→score 0 (right in natural), 45°, 90°, 135°, 180°→score 100
+  // Screen positions (after 180° flip): natural 0° → screen angle 180° etc.
+  [[0,0],[45,25],[90,50],[135,75],[180,100]].forEach(([naturalDeg, val]) => {
+    const rT = r + 16;
+    // natural point
+    const nx = cx + rT * Math.cos(toRad(naturalDeg));
+    const ny = cy + rT * Math.sin(toRad(naturalDeg));
+    // screen point after rotate(180, cx, cy)
+    const sx = 2*cx - nx, sy = 2*cy - ny;
+    html += `<text x="${sx.toFixed(1)}" y="${(sy+3).toFixed(1)}" fill="rgba(255,255,255,0.28)" font-size="7.5" font-family="DM Sans,sans-serif" text-anchor="middle">${val}</text>`;
+  });
+
+  // ── ZONE LABELS (screen space, readable) ──────────────────────────────────
+  // LOW → leftmost point of arc in screen space
+  // After flip: natural (cx-r, cy) → screen (cx+r, cy) and natural (cx+r,cy)→screen(cx-r,cy)
+  // So LOW (score=0, was natural RIGHT) → screen LEFT ✓
+  //    HIGH (score=100, was natural LEFT) → screen RIGHT ✓
+  //    MEDIUM (natural TOP = cy-r) → screen BOTTOM = cy+r ✓ (below arc)
+
+  const lowScreenX  = cx - r - 12;           // screen left
+  const highScreenX = cx + r + 12;            // screen right
+  const medScreenY  = cy + r + 14;            // screen below arc base line
+  const labY        = cy + 4;                 // vertically centred on diameter
+
+  html += `<text x="${lowScreenX.toFixed(1)}"  y="${labY.toFixed(1)}"        fill="rgba(239,68,68,0.9)"  font-size="8.5" font-family="DM Sans,sans-serif" text-anchor="middle" font-weight="600">LOW</text>`;
+  html += `<text x="${cx}"                      y="${medScreenY.toFixed(1)}"  fill="rgba(234,179,8,0.9)"  font-size="8.5" font-family="DM Sans,sans-serif" text-anchor="middle" font-weight="600">MEDIUM</text>`;
+  html += `<text x="${highScreenX.toFixed(1)}" y="${labY.toFixed(1)}"        fill="rgba(52,211,153,0.9)" font-size="8.5" font-family="DM Sans,sans-serif" text-anchor="middle" font-weight="600">HIGH</text>`;
+
+  // ── SCORE NUMBER (below hub, always readable) ─────────────────────────────
+  html += `<text x="${cx}" y="${(cy + 20).toFixed(1)}" fill="#e8eef8" font-size="22" font-family="DM Serif Display,serif" text-anchor="middle" letter-spacing="-0.5">${score}</text>`;
+  html += `<text x="${cx}" y="${(cy + 31).toFixed(1)}" fill="#6b7a94" font-size="6.5" font-family="DM Sans,sans-serif" text-anchor="middle" letter-spacing="0.8">WELLNESS SCORE / 100</text>`;
+
+  svg.innerHTML = html;
+
+  // ── ANIMATE NEEDLE (inside rotated group, natural-space angles) ────────────
+  if (animated) {
+    setTimeout(() => {
+      const needle = document.getElementById(needleId);
+      if (!needle) return;
+      const dur = 1300, t0 = performance.now();
+      function ease(t) { return t < 0.5 ? 2*t*t : -1+(4-2*t)*t; }
+      function step(now) {
+        const t = Math.min((now - t0) / dur, 1);
+        const angle = naturalAngleStart + (naturalAngleFinal - naturalAngleStart) * ease(t);
+        const rad = toRad(angle);
+        needle.setAttribute('x2', (cx + nLen * Math.cos(rad)).toFixed(2));
+        needle.setAttribute('y2', (cy + nLen * Math.sin(rad)).toFixed(2));
+        if (t < 1) requestAnimationFrame(step);
+      }
+      requestAnimationFrame(step);
+    }, 250);
+  }
+}
+
+// ====== WEEKLY BARS ======
+const dashData = [
+  {day:'Mon', score:76, color:'rgba(126,184,247,0.4)', border:'rgba(126,184,247,0.3)'},
+  {day:'Tue', score:82, color:'rgba(52,211,153,0.4)', border:'rgba(52,211,153,0.3)'},
+  {day:'Wed', score:68, color:'rgba(126,184,247,0.35)', border:'rgba(126,184,247,0.25)'},
+  {day:'Thu', score:71, color:'rgba(126,184,247,0.35)', border:'rgba(126,184,247,0.25)'},
+  {day:'Fri', score:65, color:'rgba(251,191,36,0.35)', border:'rgba(251,191,36,0.25)'},
+  {day:'Sat', score:74, color:'rgba(126,184,247,0.35)', border:'rgba(126,184,247,0.25)'},
+  {day:'Sun', score:70, today:true, color:'rgba(167,139,250,0.5)', border:'rgba(167,139,250,0.4)'},
+];
+
+function buildBars(containerId, data) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  el.innerHTML = data.map(d => `
+    <div class="wb-wrap">
+      <div class="wb-score" style="color:${d.today?'var(--accent2)':'var(--text-muted)'}">${d.score}</div>
+      <div class="wb${d.today?' today':''}" data-score="${d.score}"
+        style="height:${d.score}%;background:${d.color};border:1px solid ${d.border};${d.today?'box-shadow:0 0 12px rgba(167,139,250,0.3)':''}">
+      </div>
+      <div class="wb-day" style="${d.today?'color:var(--accent2)':''}">${d.today?'Today':d.day}</div>
+    </div>`).join('');
+}
+
+// ====== APP LIST ======
+const appData = [
+  {ic:'🎵', bg:'rgba(126,184,247,0.15)', nm:'Spotify', op:'6 opens', w:70, color:'#7eb8f7', time:'1h 24m'},
+  {ic:'📸', bg:'rgba(167,139,250,0.15)', nm:'Instagram', op:'11 opens', w:55, color:'#a78bfa', time:'58m'},
+  {ic:'📰', bg:'rgba(251,191,36,0.15)', nm:'News App', op:'8 opens', w:42, color:'#fbbf24', time:'44m'},
+  {ic:'🎮', bg:'rgba(248,113,113,0.15)', nm:'Mobile Game', op:'3 opens', w:25, color:'#f87171', time:'32m'},
+  {ic:'🧘', bg:'rgba(52,211,153,0.15)', nm:'Breathwrk', op:'2 opens', w:10, color:'#34d399', time:'12m'},
+];
+
+function buildApps(containerId, data) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  el.innerHTML = data.map(d => `
+    <div class="app-row">
+      <div class="app-dot" style="background:${d.bg}">${d.ic}</div>
+      <div class="app-inf"><div class="app-nm">${d.nm}</div><div class="app-op">${d.op}</div></div>
+      <div class="app-bw"><div class="app-bg"><div class="app-bf" style="width:${d.w}%;background:${d.color}"></div></div></div>
+      <div class="app-tm">${d.time}</div>
+    </div>`).join('');
+}
+
+// ====== TYPING CHART ======
+function buildTypingChart() {
+  const el = document.getElementById('typing-chart');
+  if (!el) return;
+  const speeds = [38,42,35,44,39,41,36,40,43,84,48,38];
+  el.innerHTML = speeds.map(s => {
+    const h = Math.min(100, (s/90)*100);
+    const c = s > 70 ? '#f87171' : s < 30 ? '#fbbf24' : '#7eb8f7';
+    return `<div style="flex:1;height:${h}%;background:${c};border-radius:2px 2px 0 0;opacity:0.7"></div>`;
+  }).join('');
+}
+
+// ====== HOUR HEATMAP ======
+function buildHourHeat() {
+  const el = document.getElementById('hour-heat');
+  if (!el) return;
+  const heat = [0,0,85,70,0,0,0,30,60,75,70,65,80,75,60,50,40,45,55,65,70,60,50,30];
+  el.innerHTML = heat.map(v => {
+    let bg;
+    if (v === 0) bg = 'var(--bg3)';
+    else if (v > 70) bg = `rgba(248,113,113,${v/100*0.8})`;
+    else if (v > 40) bg = `rgba(126,184,247,${v/100*0.8})`;
+    else bg = `rgba(52,211,153,${v/100*0.8})`;
+    return `<div style="flex:1;height:20px;border-radius:2px;background:${bg}" title="${v>0?v+'% activity':'Inactive'}"></div>`;
+  }).join('');
+}
+
+// ====== HOURLY ARC (Daily page) ======
+function buildHourlyArc() {
+  const el = document.getElementById('hourly-arc');
+  if (!el) return;
+  const scores = [0,0,0,0,0,0,0,0,82,80,85,82,78,75,72,70,68,72,75,73,70,68,65,60];
+  const nonZero = scores.filter(s => s > 0);
+  el.innerHTML = scores.map((s, i) => {
+    if (s === 0) return `<div style="flex:1;height:2%;background:var(--bg3);border-radius:2px 2px 0 0;opacity:0.3"></div>`;
+    const h = ((s - 50) / 50) * 100;
+    const c = s >= 80 ? '#34d399' : s >= 65 ? '#7eb8f7' : '#fbbf24';
+    return `<div style="flex:1;height:${Math.max(5,h)}%;background:${c};border-radius:2px 2px 0 0;opacity:0.75"></div>`;
+  }).join('');
+}
+
+// ====== MONTH CALENDAR ======
+function buildMonthCal() {
+  const el = document.getElementById('month-cal');
+  if (!el) return;
+  const scores = [0,0,62,75,78,80,71,68,52,74,76,72,80,82,70,68,71,74,77,73,76,68,71,65,70];
+  // April 1 = Wednesday (index 2)
+  const blanks = 2;
+  let html = '';
+  for (let i = 0; i < blanks; i++) html += '<div></div>';
+  scores.forEach((s, i) => {
+    let bg;
+    if (s === 0) bg = 'var(--bg3)';
+    else if (s < 55) bg = `rgba(248,113,113,0.6)`;
+    else if (s < 65) bg = `rgba(251,191,36,0.5)`;
+    else if (s < 75) bg = `rgba(126,184,247,0.4)`;
+    else bg = `rgba(52,211,153,0.5)`;
+    const isToday = i === 24;
+    html += `<div style="aspect-ratio:1;border-radius:4px;background:${bg};display:flex;align-items:center;justify-content:center;font-size:9px;color:${isToday?'var(--accent2)':'var(--text-dim)'};cursor:pointer;border:${isToday?'1px solid rgba(167,139,250,0.6)':'1px solid transparent'}" title="Apr ${i+1}: ${s}/100">${i+1}</div>`;
+  });
+  el.innerHTML = html;
+}
+
+// ====== SPARKLINES ======
+function buildSparkline(id, vals, color) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const max = Math.max(...vals);
+  el.innerHTML = vals.map(v => `<div class="sp-bar" style="height:${(v/max)*100}%;background:${color}55;border-top:2px solid ${color}"></div>`).join('');
+}
+
+// ====== MOOD ======
+function selMood(el) {
+  document.querySelectorAll('.mood-btn').forEach(b => b.classList.remove('sel'));
+  el.classList.add('sel');
+}
+window.selMood = selMood;
+
+// ====== TABS ======
+document.querySelectorAll('.tabs').forEach(tabGroup => {
+  tabGroup.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabGroup.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+    });
+  });
+});
+
+// ====== PAGE INIT ======
+function initPage(pageId) {
+  setTimeout(() => {
+    if (pageId === 'dashboard') {
+      drawGauge('gauge-svg', 70, true);
+      buildBars('dash-bars', dashData);
+      buildApps('dash-apps', appData);
+    }
+    if (pageId === 'signals') {
+      buildTypingChart();
+      buildHourHeat();
+    }
+    if (pageId === 'appusage') {
+      buildSparkline('sp-insta', [8,12,10,9,14,11,11], '#a78bfa');
+      buildSparkline('sp-news', [4,5,6,6,8,7,8], '#fbbf24');
+      buildSparkline('sp-breath', [0,1,0,2,1,2,2], '#34d399');
+      buildSparkline('sp-screen', [5.5,6.2,5.8,5.1,6.5,4.9,4.4], '#7eb8f7');
+    }
+    if (pageId === 'daily') {
+      drawGauge('daily-gauge', 70, true);
+      buildHourlyArc();
+    }
+    if (pageId === 'weekly') { drawGauge('week-gauge', 72, true); }
+    if (pageId === 'monthly') { drawGauge('month-gauge', 71, true); buildMonthCal(); }
+    if (pageId === 'yearly') { drawGauge('year-gauge', 68, true); }
+  }, 50);
+}
+
+// ====== INIT ======
+initPage('dashboard');
+async function connectBackend() {
+    try {
+        const response = await fetch("https://mindguard-jd.onrender.com/");
+        const data = await response.json();
+
+        console.log("Backend Connected:", data);
+
+        const titleEl = document.querySelector(".s-title");
+const scoreEl = document.querySelector(".sm-val");
+
+if (titleEl) {
+    titleEl.innerText = data.message;
+}
+
+if (scoreEl) {
+    scoreEl.innerText = data.score || "74";
+}
+
+    } catch (error) {
+
+        console.error("Backend Error:", error);
+
+        const titleEl = document.querySelector(".s-title");
+
+if (titleEl) {
+    titleEl.innerText = "Backend Offline";
+}
+    }
+}
+
+connectBackend();
+</script>
+</body>
+</html>
