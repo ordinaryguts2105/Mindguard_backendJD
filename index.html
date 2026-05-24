@@ -599,3 +599,222 @@ body::after{content:'';position:fixed;bottom:-200px;right:-200px;width:500px;hei
         <div><div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:12px;"><span style="color:var(--text-dim)">🎮 Gaming</span><span style="color:var(--accent2)">32m</span></div><div class="prog-wrap"><div class="prog-fill" style="width:20%;background:var(--accent2)"></div></div></div>
         <div><div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:12px;"><span style="color:var(--text-dim)">💬 Communication</span><span style="color:var(--accent3)">18m</span></div><div class="prog-wrap"><div class="prog-fill" style="width:12%;background:var(--accent3)"></div></div></div>
         <div><div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:12px;"><span style="color:var(--text-dim)">🧘 Wellness</span><span style="color:var(--accent3)">16m</span></div><div class="prog-wrap"><div class="prog-f
+              </div>
+    </div>
+    <div class="card">
+      <div class="ch"><div class="ct">7-Day App Trends</div><div class="ctag">Compulsive watch</div></div>
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:12px;"><span style="color:var(--text)">📸 Instagram opens/day</span><span style="color:var(--text-dim)">avg 10.4</span></div>
+          <div class="sparkline" id="sp-insta"></div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:12px;"><span style="color:var(--text)">📰 News opens/day</span><span style="color:var(--warn)">↑ trending up</span></div>
+          <div class="sparkline" id="sp-news"></div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:12px;"><span style="color:var(--text)">🧘 Breathwrk sessions</span><span style="color:var(--accent3)">↑ positive</span></div>
+          <div class="sparkline" id="sp-breath"></div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:12px;"><span style="color:var(--text)">📱 Total screen (hrs)</span><span style="color:var(--text-dim)">avg 5.1h</span></div>
+          <div class="sparkline" id="sp-screen"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== 4. DAILY REPORT ====== -->
+<div class="page" id="page-daily">
+  <div class="ph">
+    <div><div class="pt">Daily Report</div><div class="ps">Full breakdown for Saturday, 25 April 2026</div></div>
+    <div class="date-pill" style="cursor:pointer">◀ Apr 24 &nbsp;|&nbsp; Apr 25 &nbsp;|&nbsp; Apr 26 ▶</div>
+  </div>
+
+  <div class="alert-y ay mb20">
+    <div class="a-ic">⚠️</div>
+    <div><div class="a-title">Today's Guardian Action</div><div class="a-text">A gentle summary was sent to Meena at 7:00 AM noting late-night activity. No urgent alert triggered.</div></div>
+  </div>
+
+  <div style="display:flex;gap:20px;margin-bottom:20px;align-items:flex-start;">
+    <div style="flex-shrink:0;width:160px;">
+      <svg id="daily-gauge" viewBox="-20 -55 240 185" width="160" height="102" style="overflow:visible;display:block;"></svg>
+    </div>
+    <div style="flex:1">
+      <div class="s-status s-stable mb20" style="margin-bottom:10px"><span class="s-dot"></span> Stable</div>
+      <div style="font-family:'DM Serif Display',serif;font-size:18px;color:#e8eef8;margin-bottom:6px;">You're holding steady, JD.</div>
+      <div style="font-size:13px;color:var(--text-dim);line-height:1.6;margin-bottom:12px;">Your patterns today look mostly balanced. There was late-night activity that pulled the score down slightly. Try winding down earlier tonight — your mind will thank you.</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <span class="badge b-bad">–6 pts: Late night usage</span>
+        <span class="badge b-warn">–3 pts: Erratic typing (1am)</span>
+        <span class="badge b-warn">–2 pts: News doomscrolling</span>
+        <span class="badge b-ok">+5 pts: Breathwrk session</span>
+        <span class="badge b-ok">+3 pts: MindGuard use</span>
+        <span class="badge b-ok">+2 pts: Normal typing</span>
+        <span class="badge b-ok">+5 pts: No heavy screen time</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card mb20">
+    <div class="ch"><div class="ct">Hour-by-Hour Score Flow</div><div class="ctag">Daily Arc</div></div>
+    <div style="display:flex;align-items:flex-end;gap:3px;height:70px;margin-bottom:8px;" id="hourly-arc"></div>
+    <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-muted)"><span>12am</span><span>4am</span><span>8am</span><span>12pm</span><span>4pm</span><span>8pm</span><span>11pm</span></div>
+  </div>
+
+  <div class="grid2 mb20">
+    <div class="card">
+      <div class="ch"><div class="ct">What We Noticed</div><div class="ctag">Observations</div></div>
+      <div class="timeline">
+        <div class="tl-item"><div class="tl-dot" style="background:rgba(248,113,113,0.1)">🌙</div><div class="tl-body"><div class="tl-time">1:20 AM – 2:45 AM</div><div class="tl-title">Late-night usage detected</div><div class="tl-desc">85 minutes of active screen time after midnight, including erratic typing bursts. This is the second consecutive night.</div></div></div>
+        <div class="tl-item"><div class="tl-dot" style="background:rgba(52,211,153,0.1)">☀️</div><div class="tl-body"><div class="tl-time">7:15 AM</div><div class="tl-title">Healthy wake-up start</div><div class="tl-desc">First phone use at 7:15 AM with calm, focused typing. Good morning rhythm.</div></div></div>
+        <div class="tl-item"><div class="tl-dot" style="background:rgba(52,211,153,0.1)">🧘</div><div class="tl-body"><div class="tl-time">10:30 AM</div><div class="tl-title">Breathwork session completed</div><div class="tl-desc">12-minute guided breathwork session — excellent self-care signal.</div></div></div>
+        <div class="tl-item"><div class="tl-dot" style="background:rgba(251,191,36,0.1)">📰</div><div class="tl-body"><div class="tl-time">2:00 PM – 2:44 PM</div><div class="tl-title">Extended news reading</div><div class="tl-desc">44 minutes of news consumption — trending toward doomscrolling territory. Monitor for tomorrow.</div></div></div>
+        <div class="tl-item"><div class="tl-dot" style="background:rgba(126,184,247,0.1)">📱</div><div class="tl-body"><div class="tl-time">Overall</div><div class="tl-title">Screen time 18% below average</div><div class="tl-desc">Total screen time of 4h 22m, well below your 30-day average of 5h 22m. A positive signal.</div></div></div>
+      </div>
+    </div>
+    <div>
+      <div class="card mb20">
+        <div class="ch"><div class="ct">Score Breakdown</div><div class="ctag">Points</div></div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <div style="display:flex;justify-content:space-between;font-size:12.5px;padding:8px;background:var(--bg3);border-radius:8px;"><span style="color:var(--text-dim)">Base score</span><span style="color:var(--text)">100</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:12.5px;padding:8px;background:rgba(248,113,113,0.05);border-radius:8px;border:1px solid rgba(248,113,113,0.1);"><span style="color:var(--danger)">Late-night usage (2× 30 min)</span><span style="color:var(--danger)">–6</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:12.5px;padding:8px;background:rgba(251,191,36,0.05);border-radius:8px;border:1px solid rgba(251,191,36,0.1);"><span style="color:var(--warn)">Erratic typing (1:30 AM burst)</span><span style="color:var(--warn)">–3</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:12.5px;padding:8px;background:rgba(251,191,36,0.05);border-radius:8px;border:1px solid rgba(251,191,36,0.1);"><span style="color:var(--warn)">News doomscrolling (44 min)</span><span style="color:var(--warn)">–2</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:12.5px;padding:8px;background:rgba(52,211,153,0.05);border-radius:8px;border:1px solid rgba(52,211,153,0.1);"><span style="color:var(--accent3)">Breathwrk session</span><span style="color:var(--accent3)">+5</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:12.5px;padding:8px;background:rgba(52,211,153,0.05);border-radius:8px;border:1px solid rgba(52,211,153,0.1);"><span style="color:var(--accent3)">MindGuard check-in</span><span style="color:var(--accent3)">+3</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:12.5px;padding:8px;background:rgba(52,211,153,0.05);border-radius:8px;border:1px solid rgba(52,211,153,0.1);"><span style="color:var(--accent3)">Screen time below average</span><span style="color:var(--accent3)">+5</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:12.5px;padding:8px;background:rgba(52,211,153,0.05);border-radius:8px;border:1px solid rgba(52,211,153,0.1);"><span style="color:var(--accent3)">Normal daytime typing</span><span style="color:var(--accent3)">+2</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:13.5px;font-weight:600;padding:10px 8px;background:var(--card2);border-radius:8px;margin-top:4px;"><span style="color:var(--text)">Final Daily Score</span><span style="color:var(--accent)">70 / 100</span></div>
+        </div>
+      </div>
+      <div class="suggest">
+        <div class="sug-ic">💡</div>
+        <div><div class="sug-t">MindGuard Recommends</div><div class="sug-d">Consider setting a "No phone after 11 PM" reminder. Two late nights in a row is a pattern worth breaking gently — your future self will notice the difference.</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== 5. WEEKLY ====== -->
+<div class="page" id="page-weekly">
+  <div class="ph">
+    <div><div class="pt">Weekly Report</div><div class="ps">Week of April 19 – 25, 2026</div></div>
+    <div class="date-pill">Week 17 of 2026</div>
+  </div>
+
+  <div class="score-hero mb20">
+    <div style="flex-shrink:0;width:200px;height:130px;">
+      <svg id="week-gauge" viewBox="-20 -55 240 185" width="200" height="128" style="overflow:visible;display:block;"></svg>
+    </div>
+    <div class="sd">
+      <div class="s-status s-stable"><span class="s-dot"></span> Stable Week</div>
+      <div class="s-title">A generally positive week.</div>
+      <div class="s-desc">Your weekly average sits at 72.3/100 — stable and within the healthy range. Tuesday was your strongest day. Friday dipped slightly due to elevated screen time and late-night activity on consecutive evenings.</div>
+      <div class="s-meta">
+        <div><div class="sm-val">82</div><div class="sm-key">Best Day (Tue)</div></div>
+        <div><div class="sm-val">65</div><div class="sm-key">Lowest Day (Fri)</div></div>
+        <div><div class="sm-val">71</div><div class="sm-key">Monthly Avg</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card mb20">
+    <div class="ch"><div class="ct">Daily Scores — This Week</div><div class="ctag">Apr 19–25</div></div>
+    <table class="tbl">
+      <tr><th>Day</th><th>Score</th><th>Status</th><th>Highlight Signal</th><th>Screen Time</th><th>App Opens</th></tr>
+      <tr><td>Monday, Apr 19</td><td><span class="score-chip" style="background:rgba(126,184,247,0.1);color:var(--accent)">76</span></td><td><span class="badge b-ok">Stable</span></td><td style="font-size:12px;color:var(--text-dim)">Normal typing, fitness app used</td><td>4h 58m</td><td>39</td></tr>
+      <tr><td>Tuesday, Apr 20</td><td><span class="score-chip" style="background:rgba(52,211,153,0.15);color:var(--accent3)">82</span></td><td><span class="badge b-ok">Flourishing</span></td><td style="font-size:12px;color:var(--text-dim)">Low screen time, meditation, no late night</td><td>3h 40m</td><td>31</td></tr>
+      <tr><td>Wednesday, Apr 21</td><td><span class="score-chip" style="background:rgba(126,184,247,0.1);color:var(--accent)">68</span></td><td><span class="badge b-ok">Stable</span></td><td style="font-size:12px;color:var(--text-dim)">Mild work-hour avoidance, normal evening</td><td>5h 12m</td><td>44</td></tr>
+      <tr><td>Thursday, Apr 22</td><td><span class="score-chip" style="background:rgba(126,184,247,0.1);color:var(--accent)">71</span></td><td><span class="badge b-ok">Stable</span></td><td style="font-size:12px;color:var(--text-dim)">Social substitution flagged (evening)</td><td>5h 05m</td><td>50</td></tr>
+      <tr><td>Friday, Apr 23</td><td><span class="score-chip" style="background:rgba(251,191,36,0.1);color:var(--warn)">65</span></td><td><span class="badge b-warn">Moderate</span></td><td style="font-size:12px;color:var(--text-dim)">Late-night usage, high screen time</td><td>6h 30m</td><td>58</td></tr>
+      <tr><td>Saturday, Apr 24</td><td><span class="score-chip" style="background:rgba(126,184,247,0.1);color:var(--accent)">74</span></td><td><span class="badge b-ok">Stable</span></td><td style="font-size:12px;color:var(--text-dim)">Breathwrk session, balanced day</td><td>4h 50m</td><td>43</td></tr>
+      <tr><td>Sunday, Apr 25 (Today)</td><td><span class="score-chip" style="background:rgba(167,139,250,0.15);color:var(--accent2)">70</span></td><td><span class="badge b-ok">Stable</span></td><td style="font-size:12px;color:var(--text-dim)">Late-night flag, below-avg screen time</td><td>4h 22m</td><td>47</td></tr>
+      <tr style="font-weight:600;"><td style="color:var(--accent)">Weekly Average</td><td><span class="score-chip" style="background:rgba(126,184,247,0.15);color:var(--accent)">72.3</span></td><td></td><td></td><td style="color:var(--accent)">4h 57m</td><td style="color:var(--accent)">44.6</td></tr>
+    </table>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <div class="ch"><div class="ct">Week-over-Week Trend</div><div class="ctag">4 weeks</div></div>
+      <div style="display:flex;align-items:flex-end;gap:16px;height:80px;margin-bottom:12px;">
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;"><div style="width:100%;height:62%;background:rgba(126,184,247,0.2);border:1px solid rgba(126,184,247,0.3);border-radius:4px 4px 0 0"></div><div style="font-size:10px;color:var(--text-muted)">W14</div><div style="font-size:11px;color:var(--text-dim)">68.1</div></div>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;"><div style="width:100%;height:70%;background:rgba(126,184,247,0.2);border:1px solid rgba(126,184,247,0.3);border-radius:4px 4px 0 0"></div><div style="font-size:10px;color:var(--text-muted)">W15</div><div style="font-size:11px;color:var(--text-dim)">70.2</div></div>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;"><div style="width:100%;height:66%;background:rgba(126,184,247,0.2);border:1px solid rgba(126,184,247,0.3);border-radius:4px 4px 0 0"></div><div style="font-size:10px;color:var(--text-muted)">W16</div><div style="font-size:11px;color:var(--text-dim)">69.5</div></div>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;"><div style="width:100%;height:72%;background:rgba(52,211,153,0.25);border:1px solid rgba(52,211,153,0.4);border-radius:4px 4px 0 0;box-shadow:0 0 10px rgba(52,211,153,0.2)"></div><div style="font-size:10px;color:var(--accent3)">W17 ✦</div><div style="font-size:11px;color:var(--accent3)">72.3</div></div>
+      </div>
+      <div class="alert-g ag" style="padding:10px 12px;"><div class="a-ic" style="font-size:14px">📈</div><div class="a-text">Your score has improved 4.2 points over the past 4 weeks. Keep it up.</div></div>
+    </div>
+    <div class="card">
+      <div class="ch"><div class="ct">Weekly Insights</div><div class="ctag">Patterns</div></div>
+      <div class="sig-list">
+        <div class="sig-item"><div class="sig-ic">🌙</div><div class="sig-tx">Late-night usage occurred on 3 out of 7 days this week (Fri, Sat, Sun)</div><div class="badge b-warn">Watch</div></div>
+        <div class="sig-item"><div class="sig-ic">🧘</div><div class="sig-tx">Breathwrk used on 3 days — a growing positive habit</div><div class="badge b-ok">Positive</div></div>
+        <div class="sig-item"><div class="sig-ic">📱</div><div class="sig-tx">Screen time fell 8% compared to last week — improvement</div><div class="badge b-ok">Improved</div></div>
+        <div class="sig-item"><div class="sig-ic">📰</div><div class="sig-tx">News app use is trending upward — 4 days with extended reading</div><div class="badge b-warn">Monitor</div></div>
+        <div class="sig-item"><div class="sig-ic">💼</div><div class="sig-tx">Work-hour avoidance noted Wednesday and Thursday</div><div class="badge b-warn">Note</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== 6. MONTHLY ====== -->
+<div class="page" id="page-monthly">
+  <div class="ph">
+    <div><div class="pt">Monthly Report</div><div class="ps">April 2026 — 25 days recorded</div></div>
+    <div class="date-pill">← March &nbsp;|&nbsp; April &nbsp;|&nbsp; May →</div>
+  </div>
+
+  <div class="score-hero mb20">
+    <div style="flex-shrink:0;width:200px;height:130px;">
+      <svg id="month-gauge" viewBox="-20 -55 240 185" width="200" height="128" style="overflow:visible;display:block;"></svg>
+    </div>
+    <div class="sd">
+      <div class="s-status s-stable"><span class="s-dot"></span> Stable Month</div>
+      <div class="s-title">April has been a steady month.</div>
+      <div class="s-desc">Monthly average of 71.2/100 — up from 68.4 in March. Your highest week was Week 2 (Apr 7–13) at 74.8. The lowest single day was April 9th at 52. Positive habits are emerging.</div>
+      <div class="s-meta">
+        <div><div class="sm-val">82</div><div class="sm-key">Best Day</div></div>
+        <div><div class="sm-val">52</div><div class="sm-key">Lowest Day</div></div>
+        <div><div class="sm-val">+2.8</div><div class="sm-key">vs March</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card mb20">
+    <div class="ch"><div class="ct">Daily Score Calendar — April 2026</div><div class="ctag">Heatmap</div></div>
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:8px;">
+      <div style="font-size:10px;color:var(--text-muted);text-align:center;padding:4px;">Mon</div>
+      <div style="font-size:10px;color:var(--text-muted);text-align:center;padding:4px;">Tue</div>
+      <div style="font-size:10px;color:var(--text-muted);text-align:center;padding:4px;">Wed</div>
+      <div style="font-size:10px;color:var(--text-muted);text-align:center;padding:4px;">Thu</div>
+      <div style="font-size:10px;color:var(--text-muted);text-align:center;padding:4px;">Fri</div>
+      <div style="font-size:10px;color:var(--text-muted);text-align:center;padding:4px;">Sat</div>
+      <div style="font-size:10px;color:var(--text-muted);text-align:center;padding:4px;">Sun</div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;" id="month-cal"></div>
+    <div style="display:flex;align-items:center;gap:8px;margin-top:12px;font-size:11px;color:var(--text-dim);">
+      <span>Lower</span>
+      <div style="display:flex;gap:2px;">
+        <div style="width:14px;height:14px;border-radius:3px;background:rgba(248,113,113,0.6)"></div>
+        <div style="width:14px;height:14px;border-radius:3px;background:rgba(251,191,36,0.5)"></div>
+        <div style="width:14px;height:14px;border-radius:3px;background:rgba(126,184,247,0.4)"></div>
+        <div style="width:14px;height:14px;border-radius:3px;background:rgba(52,211,153,0.5)"></div>
+      </div>
+      <span>Higher</span>
+    </div>
+  </div>
+
+  <div class="grid3 mb20">
+    <div class="stat-box"><div class="sv">71.2</div><div class="sk">Monthly Avg Score</div><div class="st t-up">▲ +2.8 vs March</div></div>
+    <div class="stat-box"><div class="sv" style="color:var(--accent3)">12</div><div class="sk">Days above 75</div><div class="st t-up">Flourishing days</div></div>
+    <div class="stat-box"><div class="sv" style="color:var(--danger)">2</div><div class="sk">Days below 55</div><div class="st t-dn">Concerning days</div></div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <div class="ch"><div class="ct">Monthly Trend</div><div class="ctag">4 weeks</div></div>
+      <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:8px;">
+        <div><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px;"><span style="color:var(--text-dim)">Week 1 (Apr 1–6)</span><span style="color:var(--accent)">68.9</span></div><div class="prog-wrap"><div class="prog-fill" style="width:69%;background:var(--accent)"></div></div></div>
+        
