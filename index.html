@@ -1243,422 +1243,360 @@ body::after{content:'';position:fixed;bottom:-200px;right:-200px;width:500px;hei
 </div>
 
 <script>
-// ====== NAVIGATION ======
-const navItems = document.querySelectorAll('.nav-item[data-page]');
+
+// ===== NAVIGATION =====
+const navItems = document.querySelectorAll('.nav-item');
 const pages = document.querySelectorAll('.page');
 
-function goTo(pageId) {
-  pages.forEach(p => p.classList.remove('active'));
-  navItems.forEach(n => n.classList.remove('active'));
-  const page = document.getElementById('page-' + pageId);
-  if (page) { page.classList.add('active'); initPage(pageId); }
-  navItems.forEach(n => { if (n.dataset.page === pageId) n.classList.add('active'); });
-}
+navItems.forEach(item => {
+  item.addEventListener('click', () => {
+    navItems.forEach(n => n.classList.remove('active'));
+    item.classList.add('active');
 
-navItems.forEach(item => item.addEventListener('click', () => goTo(item.dataset.page)));
+    const pageId = item.dataset.page;
 
-// ====== SPEEDOMETER GAUGE ======
-// Flat semicircle: LOW=0 at left (180°), HIGH=100 at right (0°)
-// Arc opens UPWARD. Pivot at bottom-centre of the semicircle.
-// SVG coords: cx=100, cy=90 (pivot), r=72
-// Angle mapping: score 0 → 180° (left), score 100 → 0° (right)
-// Arc drawn counter-clockwise (sweep=0) from 180° → 0° over the top.
-
-function drawGauge(svgId, score, animated) {
-  const svg = document.getElementById(svgId);
-  if (!svg) return;
-
-  // ── Geometry ──────────────────────────────────────────────────────────────
-  // The arc is defined in "natural" SVG space where the semicircle opens DOWNWARD
-  // (pivot at top-centre cy=30, arc bows downward). We then wrap everything in a
-  // rotate(180, cx, cy) group so the arc flips to open UPWARD — exactly like the
-  // cortisol image. Text nodes are placed OUTSIDE the rotated group and positioned
-  // in final (unrotated) screen space so they always read correctly.
-
-  const cx = 100, cy = 30, r = 72;   // pivot at top-centre in natural space
-  const SVG_H = 130;                  // total viewBox height
-
-  function toRad(d) { return d * Math.PI / 180; }
-
-  // After 180° rotation around (cx, cy):
-  //   a point (x, y) maps to (2*cx - x,  2*cy - y)
-  // The pivot itself stays at (cx, cy) → screen (cx, cy) = (100, 30)
-  // The arc, which bowed downward in natural space, now bows upward in screen space.
-  // Score 0 → needle points LEFT  (angle 0°  in natural = angle 180° on screen)
-  // Score 100 → needle points RIGHT (angle 180° in natural = angle 0° on screen)
-
-  // Natural angle for score s: 0° (right) at score=0, 180° (left) at score=100
-  // But we want LOW on left and HIGH on right after rotation, so:
-  //   score=0   → natural angle 0°   → after rotation: 180° (left) ✓ LOW
-  //   score=100 → natural angle 180° → after rotation: 0°   (right) ✓ HIGH
-  function scoreToNaturalAngle(s) { return s * 1.8; } // 0→0°, 100→180°
-
-  function ptAt(deg) {
-    return { x: cx + r * Math.cos(toRad(deg)), y: cy + r * Math.sin(toRad(deg)) };
-  }
-
-  // Arc clockwise (sweep=1) from a1 to a2 in natural space
-  function arcPath(a1, a2) {
-    const s = ptAt(a1), e = ptAt(a2);
-    const span = a2 - a1;
-    const large = span > 180 ? 1 : 0;
-    return `M ${s.x.toFixed(2)} ${s.y.toFixed(2)} A ${r} ${r} 0 ${large} 1 ${e.x.toFixed(2)} ${e.y.toFixed(2)}`;
-  }
-
-  // ── Colours ───────────────────────────────────────────────────────────────
-  const bands = [
-    { a1:   0, a2:  36, color: '#ef4444' }, // score 0–20   Critical    (left after flip)
-    { a1:  36, a2:  72, color: '#f97316' }, // score 20–40  Concerning
-    { a1:  72, a2: 108, color: '#eab308' }, // score 40–60  Moderate
-    { a1: 108, a2: 144, color: '#60a5fa' }, // score 60–80  Stable
-    { a1: 144, a2: 180, color: '#34d399' }, // score 80–100 Flourishing (right after flip)
-  ];
-
-  const sc = score >= 80 ? '#34d399' : score >= 60 ? '#60a5fa' : score >= 40 ? '#eab308' : score >= 20 ? '#f97316' : '#ef4444';
-
-  // ── Needle angle in natural space (before rotation group) ─────────────────
-  const naturalAngleFinal = scoreToNaturalAngle(score); // 0°–180°
-  const naturalAngleStart = 0;                           // start at LOW (score=0)
-  const nLen = r - 10;
-  const needleId = `nd-${svgId}`;
-
-  // ── Build SVG ─────────────────────────────────────────────────────────────
-  let html = `<defs>
-    <filter id="ns${svgId}"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-color="rgba(0,0,0,0.8)"/></filter>
-    <filter id="gw${svgId}"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-  </defs>`;
-
-  // ── ROTATED GROUP: arc + needle (all flipped 180° around pivot) ───────────
-  html += `<g transform="rotate(180 ${cx} ${cy})">`;
-
-  // Background track
-  html += `<path d="${arcPath(0, 180)}" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="18" stroke-linecap="round"/>`;
-
-  // Colour bands
-  bands.forEach(b => {
-    html += `<path d="${arcPath(b.a1, b.a2)}" fill="none" stroke="${b.color}" stroke-width="14" stroke-linecap="butt" opacity="0.88"/>`;
-  });
-
-  // Gap dividers at 36°, 72°, 108°, 144° (natural space)
-  [36, 72, 108, 144].forEach(deg => {
-    const ri = r - 9, ro = r + 9, rad = toRad(deg);
-    const ix = cx + ri * Math.cos(rad), iy = cy + ri * Math.sin(rad);
-    const ox = cx + ro * Math.cos(rad), oy = cy + ro * Math.sin(rad);
-    html += `<line x1="${ix.toFixed(1)}" y1="${iy.toFixed(1)}" x2="${ox.toFixed(1)}" y2="${oy.toFixed(1)}" stroke="#0a0c10" stroke-width="3.5"/>`;
-  });
-
-  // Needle (inside rotated group — rotation flips it correctly)
-  const startRad = toRad(naturalAngleStart);
-  const finalRad = toRad(naturalAngleFinal);
-  if (animated) {
-    html += `<line id="${needleId}"
-      x1="${cx}" y1="${cy}"
-      x2="${(cx + nLen * Math.cos(startRad)).toFixed(2)}"
-      y2="${(cy + nLen * Math.sin(startRad)).toFixed(2)}"
-      stroke="#dde8f8" stroke-width="2.8" stroke-linecap="round" filter="url(#ns${svgId})"/>`;
-  } else {
-    html += `<line x1="${cx}" y1="${cy}"
-      x2="${(cx + nLen * Math.cos(finalRad)).toFixed(2)}"
-      y2="${(cy + nLen * Math.sin(finalRad)).toFixed(2)}"
-      stroke="#dde8f8" stroke-width="2.8" stroke-linecap="round" filter="url(#ns${svgId})"/>`;
-  }
-
-  html += `</g>`; // end rotated group
-
-  // ── PIVOT HUB (not rotated — stays centred at pivot screen position) ──────
-  // After rotation pivot (cx, cy=30) stays at screen (100, 30).
-  // Arc bows upward → the flat base is at y=30, arc top at y=30-72=-42 (clipped above).
-  // We want the hub and labels in screen space below the arc's flat base.
-  // Screen pivot = (cx, cy) = (100, 30) → hub sits right there on the diameter line.
-  html += `<circle cx="${cx}" cy="${cy}" r="9" fill="#141820" stroke="${sc}" stroke-width="2.2" filter="url(#gw${svgId})"/>`;
-  html += `<circle cx="${cx}" cy="${cy}" r="3.5" fill="${sc}"/>`;
-
-  // ── TICK LABELS (screen space, counter-rotated positions) ─────────────────
-  // After rotate(180, cx, cy), a natural point (x,y) lands at screen (2cx-x, 2cy-y).
-  // We place tick labels at screen positions corresponding to arc outer edge.
-  // Natural angles: 0°→score 0 (right in natural), 45°, 90°, 135°, 180°→score 100
-  // Screen positions (after 180° flip): natural 0° → screen angle 180° etc.
-  [[0,0],[45,25],[90,50],[135,75],[180,100]].forEach(([naturalDeg, val]) => {
-    const rT = r + 16;
-    // natural point
-    const nx = cx + rT * Math.cos(toRad(naturalDeg));
-    const ny = cy + rT * Math.sin(toRad(naturalDeg));
-    // screen point after rotate(180, cx, cy)
-    const sx = 2*cx - nx, sy = 2*cy - ny;
-    html += `<text x="${sx.toFixed(1)}" y="${(sy+3).toFixed(1)}" fill="rgba(255,255,255,0.28)" font-size="7.5" font-family="DM Sans,sans-serif" text-anchor="middle">${val}</text>`;
-  });
-
-  // ── ZONE LABELS (screen space, readable) ──────────────────────────────────
-  // LOW → leftmost point of arc in screen space
-  // After flip: natural (cx-r, cy) → screen (cx+r, cy) and natural (cx+r,cy)→screen(cx-r,cy)
-  // So LOW (score=0, was natural RIGHT) → screen LEFT ✓
-  //    HIGH (score=100, was natural LEFT) → screen RIGHT ✓
-  //    MEDIUM (natural TOP = cy-r) → screen BOTTOM = cy+r ✓ (below arc)
-
-  const lowScreenX  = cx - r - 12;           // screen left
-  const highScreenX = cx + r + 12;            // screen right
-  const medScreenY  = cy + r + 14;            // screen below arc base line
-  const labY        = cy + 4;                 // vertically centred on diameter
-
-  html += `<text x="${lowScreenX.toFixed(1)}"  y="${labY.toFixed(1)}"        fill="rgba(239,68,68,0.9)"  font-size="8.5" font-family="DM Sans,sans-serif" text-anchor="middle" font-weight="600">LOW</text>`;
-  html += `<text x="${cx}"                      y="${medScreenY.toFixed(1)}"  fill="rgba(234,179,8,0.9)"  font-size="8.5" font-family="DM Sans,sans-serif" text-anchor="middle" font-weight="600">MEDIUM</text>`;
-  html += `<text x="${highScreenX.toFixed(1)}" y="${labY.toFixed(1)}"        fill="rgba(52,211,153,0.9)" font-size="8.5" font-family="DM Sans,sans-serif" text-anchor="middle" font-weight="600">HIGH</text>`;
-
-  // ── SCORE NUMBER (below hub, always readable) ─────────────────────────────
-  html += `<text x="${cx}" y="${(cy + 20).toFixed(1)}" fill="#e8eef8" font-size="22" font-family="DM Serif Display,serif" text-anchor="middle" letter-spacing="-0.5">${score}</text>`;
-  html += `<text x="${cx}" y="${(cy + 31).toFixed(1)}" fill="#6b7a94" font-size="6.5" font-family="DM Sans,sans-serif" text-anchor="middle" letter-spacing="0.8">WELLNESS SCORE / 100</text>`;
-
-  svg.innerHTML = html;
-
-  // ── ANIMATE NEEDLE (inside rotated group, natural-space angles) ────────────
-  if (animated) {
-    setTimeout(() => {
-      const needle = document.getElementById(needleId);
-      if (!needle) return;
-      const dur = 1300, t0 = performance.now();
-      function ease(t) { return t < 0.5 ? 2*t*t : -1+(4-2*t)*t; }
-      function step(now) {
-        const t = Math.min((now - t0) / dur, 1);
-        const angle = naturalAngleStart + (naturalAngleFinal - naturalAngleStart) * ease(t);
-        const rad = toRad(angle);
-        needle.setAttribute('x2', (cx + nLen * Math.cos(rad)).toFixed(2));
-        needle.setAttribute('y2', (cy + nLen * Math.sin(rad)).toFixed(2));
-        if (t < 1) requestAnimationFrame(step);
-      }
-      requestAnimationFrame(step);
-    }, 250);
-  }
-}
-
-// ====== WEEKLY BARS ======
-const dashData = [
-  {day:'Mon', score:76, color:'rgba(126,184,247,0.4)', border:'rgba(126,184,247,0.3)'},
-  {day:'Tue', score:82, color:'rgba(52,211,153,0.4)', border:'rgba(52,211,153,0.3)'},
-  {day:'Wed', score:68, color:'rgba(126,184,247,0.35)', border:'rgba(126,184,247,0.25)'},
-  {day:'Thu', score:71, color:'rgba(126,184,247,0.35)', border:'rgba(126,184,247,0.25)'},
-  {day:'Fri', score:65, color:'rgba(251,191,36,0.35)', border:'rgba(251,191,36,0.25)'},
-  {day:'Sat', score:74, color:'rgba(126,184,247,0.35)', border:'rgba(126,184,247,0.25)'},
-  {day:'Sun', score:70, today:true, color:'rgba(167,139,250,0.5)', border:'rgba(167,139,250,0.4)'},
-];
-
-function buildBars(containerId, data) {
-  const el = document.getElementById(containerId);
-  if (!el) return;
-  el.innerHTML = data.map(d => `
-    <div class="wb-wrap">
-      <div class="wb-score" style="color:${d.today?'var(--accent2)':'var(--text-muted)'}">${d.score}</div>
-      <div class="wb${d.today?' today':''}" data-score="${d.score}"
-        style="height:${d.score}%;background:${d.color};border:1px solid ${d.border};${d.today?'box-shadow:0 0 12px rgba(167,139,250,0.3)':''}">
-      </div>
-      <div class="wb-day" style="${d.today?'color:var(--accent2)':''}">${d.today?'Today':d.day}</div>
-    </div>`).join('');
-}
-
-// ====== APP LIST ======
-const appData = [
-  {ic:'🎵', bg:'rgba(126,184,247,0.15)', nm:'Spotify', op:'6 opens', w:70, color:'#7eb8f7', time:'1h 24m'},
-  {ic:'📸', bg:'rgba(167,139,250,0.15)', nm:'Instagram', op:'11 opens', w:55, color:'#a78bfa', time:'58m'},
-  {ic:'📰', bg:'rgba(251,191,36,0.15)', nm:'News App', op:'8 opens', w:42, color:'#fbbf24', time:'44m'},
-  {ic:'🎮', bg:'rgba(248,113,113,0.15)', nm:'Mobile Game', op:'3 opens', w:25, color:'#f87171', time:'32m'},
-  {ic:'🧘', bg:'rgba(52,211,153,0.15)', nm:'Breathwrk', op:'2 opens', w:10, color:'#34d399', time:'12m'},
-];
-
-function buildApps(containerId, data) {
-  const el = document.getElementById(containerId);
-  if (!el) return;
-  el.innerHTML = data.map(d => `
-    <div class="app-row">
-      <div class="app-dot" style="background:${d.bg}">${d.ic}</div>
-      <div class="app-inf"><div class="app-nm">${d.nm}</div><div class="app-op">${d.op}</div></div>
-      <div class="app-bw"><div class="app-bg"><div class="app-bf" style="width:${d.w}%;background:${d.color}"></div></div></div>
-      <div class="app-tm">${d.time}</div>
-    </div>`).join('');
-}
-
-// ====== TYPING CHART ======
-function buildTypingChart() {
-  const el = document.getElementById('typing-chart');
-  if (!el) return;
-  const speeds = [38,42,35,44,39,41,36,40,43,84,48,38];
-  el.innerHTML = speeds.map(s => {
-    const h = Math.min(100, (s/90)*100);
-    const c = s > 70 ? '#f87171' : s < 30 ? '#fbbf24' : '#7eb8f7';
-    return `<div style="flex:1;height:${h}%;background:${c};border-radius:2px 2px 0 0;opacity:0.7"></div>`;
-  }).join('');
-}
-
-// ====== HOUR HEATMAP ======
-function buildHourHeat() {
-  const el = document.getElementById('hour-heat');
-  if (!el) return;
-  const heat = [0,0,85,70,0,0,0,30,60,75,70,65,80,75,60,50,40,45,55,65,70,60,50,30];
-  el.innerHTML = heat.map(v => {
-    let bg;
-    if (v === 0) bg = 'var(--bg3)';
-    else if (v > 70) bg = `rgba(248,113,113,${v/100*0.8})`;
-    else if (v > 40) bg = `rgba(126,184,247,${v/100*0.8})`;
-    else bg = `rgba(52,211,153,${v/100*0.8})`;
-    return `<div style="flex:1;height:20px;border-radius:2px;background:${bg}" title="${v>0?v+'% activity':'Inactive'}"></div>`;
-  }).join('');
-}
-
-// ====== HOURLY ARC (Daily page) ======
-function buildHourlyArc() {
-  const el = document.getElementById('hourly-arc');
-  if (!el) return;
-  const scores = [0,0,0,0,0,0,0,0,82,80,85,82,78,75,72,70,68,72,75,73,70,68,65,60];
-  const nonZero = scores.filter(s => s > 0);
-  el.innerHTML = scores.map((s, i) => {
-    if (s === 0) return `<div style="flex:1;height:2%;background:var(--bg3);border-radius:2px 2px 0 0;opacity:0.3"></div>`;
-    const h = ((s - 50) / 50) * 100;
-    const c = s >= 80 ? '#34d399' : s >= 65 ? '#7eb8f7' : '#fbbf24';
-    return `<div style="flex:1;height:${Math.max(5,h)}%;background:${c};border-radius:2px 2px 0 0;opacity:0.75"></div>`;
-  }).join('');
-}
-
-// ====== MONTH CALENDAR ======
-function buildMonthCal() {
-  const el = document.getElementById('month-cal');
-  if (!el) return;
-  const scores = [0,0,62,75,78,80,71,68,52,74,76,72,80,82,70,68,71,74,77,73,76,68,71,65,70];
-  // April 1 = Wednesday (index 2)
-  const blanks = 2;
-  let html = '';
-  for (let i = 0; i < blanks; i++) html += '<div></div>';
-  scores.forEach((s, i) => {
-    let bg;
-    if (s === 0) bg = 'var(--bg3)';
-    else if (s < 55) bg = `rgba(248,113,113,0.6)`;
-    else if (s < 65) bg = `rgba(251,191,36,0.5)`;
-    else if (s < 75) bg = `rgba(126,184,247,0.4)`;
-    else bg = `rgba(52,211,153,0.5)`;
-    const isToday = i === 24;
-    html += `<div style="aspect-ratio:1;border-radius:4px;background:${bg};display:flex;align-items:center;justify-content:center;font-size:9px;color:${isToday?'var(--accent2)':'var(--text-dim)'};cursor:pointer;border:${isToday?'1px solid rgba(167,139,250,0.6)':'1px solid transparent'}" title="Apr ${i+1}: ${s}/100">${i+1}</div>`;
-  });
-  el.innerHTML = html;
-}
-
-// ====== SPARKLINES ======
-function buildSparkline(id, vals, color) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  const max = Math.max(...vals);
-  el.innerHTML = vals.map(v => `<div class="sp-bar" style="height:${(v/max)*100}%;background:${color}55;border-top:2px solid ${color}"></div>`).join('');
-}
-
-// ====== MOOD ======
-function selMood(el) {
-  document.querySelectorAll('.mood-btn').forEach(b => b.classList.remove('sel'));
-  el.classList.add('sel');
-}
-window.selMood = selMood;
-
-// ====== TABS ======
-document.querySelectorAll('.tabs').forEach(tabGroup => {
-  tabGroup.querySelectorAll('.tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-      tabGroup.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
+    pages.forEach(page => {
+      page.classList.remove('active');
     });
+
+    const targetPage = document.getElementById(`page-${pageId}`);
+
+    if (targetPage) {
+      targetPage.classList.add('active');
+    }
+
+    initPage(pageId);
   });
 });
 
-// ====== PAGE INIT ======
-function initPage(pageId) {
-  setTimeout(() => {
-    if (pageId === 'dashboard') {
-      drawGauge('gauge-svg', 70, true);
-      buildBars('dash-bars', dashData);
-      buildApps('dash-apps', appData);
-    }
-    if (pageId === 'signals') {
-      buildTypingChart();
-      buildHourHeat();
-    }
-    if (pageId === 'appusage') {
-      buildSparkline('sp-insta', [8,12,10,9,14,11,11], '#a78bfa');
-      buildSparkline('sp-news', [4,5,6,6,8,7,8], '#fbbf24');
-      buildSparkline('sp-breath', [0,1,0,2,1,2,2], '#34d399');
-      buildSparkline('sp-screen', [5.5,6.2,5.8,5.1,6.5,4.9,4.4], '#7eb8f7');
-    }
-    if (pageId === 'daily') {
-      drawGauge('daily-gauge', 70, true);
-      buildHourlyArc();
-    }
-    if (pageId === 'weekly') { drawGauge('week-gauge', 72, true); }
-    if (pageId === 'monthly') { drawGauge('month-gauge', 71, true); buildMonthCal(); }
-    if (pageId === 'yearly') { drawGauge('year-gauge', 68, true); }
-  }, 50);
+
+// ===== MOOD SELECT =====
+function selMood(el) {
+  document.querySelectorAll('.mood-btn').forEach(btn => {
+    btn.classList.remove('sel');
+  });
+
+  el.classList.add('sel');
 }
 
-// ====== INIT ======
-initPage('dashboard');
-async function connectBackend() {
-    try {
-        const username = localStorage.getItem("mindguardUser") || "JD";
 
-const response = await fetch(`https://mindguard-jd.onrender.com/${username}`);
-
-const data = await response.json();
-
-console.log(data);
-
-const titleEl = document.querySelector(".s-title");
-const scoreEl = document.querySelector(".sm-val");
-
-if (titleEl) {
-    titleEl.innerText = data.message || "Welcome back";
-}
-
-if (scoreEl) {
-    scoreEl.innerText = data.score || "74";
-}
- } 
-    catch (error) {
-
-        console.error("Backend Error:", error);
-
-        const titleEl = document.querySelector(".s-title");
-
-if (titleEl) {
-    titleEl.innerText = "Backend Offline";
-  }  
-}
-const alertCards = document.querySelectorAll(".alert-card");
-
+// ===== ALERT SYSTEM =====
 function filterAlerts(type) {
 
-    alertCards.forEach(card => {
+  const cards = document.querySelectorAll('.alert-card');
 
-        const status = card.dataset.status;
+  cards.forEach(card => {
 
-        if (type === "all") {
-            card.style.display = "block";
-        }
+    const status = card.dataset.status;
 
-        else if (status === type) {
-            card.style.display = "block";
-        }
+    if (type === 'all') {
+      card.style.display = 'block';
+    }
 
-        else {
-            card.style.display = "none";
-        }
+    else if (status === type) {
+      card.style.display = 'block';
+    }
 
-    });
+    else {
+      card.style.display = 'none';
+    }
+  });
 }
+
 
 function resolveAlert(button) {
 
-    const card = button.closest(".alert-card");
+  const card = button.closest('.alert-card');
 
-    if (!card) return;
+  if (!card) return;
 
-    card.dataset.status = "resolved";
+  card.dataset.status = 'resolved';
 
-    card.style.opacity = "0.6";
+  card.style.opacity = '0.6';
+
+  const badge = card.querySelector('.alert-badge');
+
+  if (badge) {
+    badge.innerText = 'Resolved';
+    badge.style.background = 'rgba(52,211,153,0.15)';
+    badge.style.color = '#34d399';
+  }
+
+  const btn = card.querySelector('.resolve-btn');
+
+  if (btn) {
+    btn.innerText = 'Resolved';
+    btn.disabled = true;
+    btn.style.opacity = '0.5';
+    btn.style.cursor = 'default';
+  }
 }
 
+
+// ===== SPEEDOMETER =====
+function drawGauge(id, score, animate = true) {
+
+  const svg = document.getElementById(id);
+
+  if (!svg) return;
+
+  svg.innerHTML = '';
+
+  const radius = 70;
+  const cx = 100;
+  const cy = 90;
+
+  const circumference = Math.PI * radius;
+
+  const bgArc = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+
+  bgArc.setAttribute(
+    'd',
+    `M ${cx-radius} ${cy} A ${radius} ${radius} 0 0 1 ${cx+radius} ${cy}`
+  );
+
+  bgArc.setAttribute('fill', 'none');
+  bgArc.setAttribute('stroke', 'rgba(255,255,255,0.08)');
+  bgArc.setAttribute('stroke-width', '14');
+  bgArc.setAttribute('stroke-linecap', 'round');
+
+  svg.appendChild(bgArc);
+
+  const fgArc = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+
+  fgArc.setAttribute(
+    'd',
+    `M ${cx-radius} ${cy} A ${radius} ${radius} 0 0 1 ${cx+radius} ${cy}`
+  );
+
+  fgArc.setAttribute('fill', 'none');
+  fgArc.setAttribute('stroke', '#7eb8f7');
+  fgArc.setAttribute('stroke-width', '14');
+  fgArc.setAttribute('stroke-linecap', 'round');
+  fgArc.setAttribute('stroke-dasharray', circumference);
+  fgArc.setAttribute('stroke-dashoffset', circumference);
+
+  svg.appendChild(fgArc);
+
+  const percent = score / 100;
+  const offset = circumference - (circumference * percent);
+
+  setTimeout(() => {
+    fgArc.style.transition = animate ? 'stroke-dashoffset 1s ease' : 'none';
+    fgArc.setAttribute('stroke-dashoffset', offset);
+  }, 50);
+
+  const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  text.setAttribute('x', cx);
+  text.setAttribute('y', cy - 10);
+  text.setAttribute('class', 'r-num');
+  text.textContent = score;
+
+  svg.appendChild(text);
+
+  const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  label.setAttribute('x', cx);
+  label.setAttribute('y', cy + 18);
+  label.setAttribute('class', 'r-lbl');
+  label.textContent = 'WELLNESS SCORE';
+
+  svg.appendChild(label);
+}
+
+
+// ===== WEEKLY BARS =====
+function buildBars(id, data) {
+
+  const wrap = document.getElementById(id);
+
+  if (!wrap) return;
+
+  wrap.innerHTML = '';
+
+  data.forEach(d => {
+
+    const item = document.createElement('div');
+    item.className = 'wb-wrap';
+
+    const score = document.createElement('div');
+    score.className = 'wb-score';
+    score.innerText = d.score;
+
+    const bar = document.createElement('div');
+    bar.className = 'wb';
+
+    if (d.today) {
+      bar.classList.add('today');
+    }
+
+    bar.style.height = `${d.score}%`;
+    bar.style.background = d.color;
+
+    const day = document.createElement('div');
+    day.className = 'wb-day';
+    day.innerText = d.day;
+
+    item.appendChild(score);
+    item.appendChild(bar);
+    item.appendChild(day);
+
+    wrap.appendChild(item);
+  });
+}
+
+
+// ===== APP LIST =====
+function buildApps(id, apps) {
+
+  const wrap = document.getElementById(id);
+
+  if (!wrap) return;
+
+  wrap.innerHTML = '';
+
+  apps.forEach(app => {
+
+    const row = document.createElement('div');
+    row.className = 'app-row';
+
+    row.innerHTML = `
+      <div class="app-dot" style="background:${app.bg}">${app.icon}</div>
+
+      <div class="app-inf">
+        <div class="app-nm">${app.name}</div>
+        <div class="app-op">${app.opens} opens</div>
+      </div>
+
+      <div class="app-bw">
+        <div class="app-bg">
+          <div class="app-bf" style="width:${app.width};background:${app.color}"></div>
+        </div>
+      </div>
+
+      <div class="app-tm">${app.time}</div>
+    `;
+
+    wrap.appendChild(row);
+  });
+}
+
+
+// ===== PAGE INIT =====
+function initPage(pageId) {
+
+  setTimeout(() => {
+
+    const dashData = [
+      { day:'Mon', score:76, color:'#7eb8f7' },
+      { day:'Tue', score:82, color:'#34d399' },
+      { day:'Wed', score:68, color:'#7eb8f7' },
+      { day:'Thu', score:71, color:'#7eb8f7' },
+      { day:'Fri', score:65, color:'#fbbf24' },
+      { day:'Sat', score:70, color:'#7eb8f7', today:true },
+      { day:'Sun', score:74, color:'#a78bfa' }
+    ];
+
+    const appData = [
+      {
+        icon:'🎵',
+        name:'Spotify',
+        opens:6,
+        time:'1h 24m',
+        width:'85%',
+        color:'#7eb8f7',
+        bg:'rgba(126,184,247,0.1)'
+      },
+      {
+        icon:'📸',
+        name:'Instagram',
+        opens:11,
+        time:'58m',
+        width:'62%',
+        color:'#34d399',
+        bg:'rgba(52,211,153,0.1)'
+      },
+      {
+        icon:'📰',
+        name:'News App',
+        opens:8,
+        time:'44m',
+        width:'48%',
+        color:'#fbbf24',
+        bg:'rgba(251,191,36,0.1)'
+      }
+    ];
+
+    if (pageId === 'dashboard') {
+      drawGauge('gauge-svg', 74, true);
+      buildBars('dash-bars', dashData);
+      buildApps('dash-apps', appData);
+    }
+
+    if (pageId === 'daily') {
+      drawGauge('daily-gauge', 70, true);
+    }
+
+    if (pageId === 'weekly') {
+      drawGauge('week-gauge', 72, true);
+    }
+
+    if (pageId === 'monthly') {
+      drawGauge('month-gauge', 71, true);
+    }
+
+    if (pageId === 'yearly') {
+      drawGauge('year-gauge', 68, true);
+    }
+
+  }, 50);
+}
+
+
+// ===== INIT =====
+initPage('dashboard');
+
+
+// ===== BACKEND CONNECTION =====
+async function connectBackend() {
+
+  try {
+
+    const username = localStorage.getItem('mindguardUser') || 'JD';
+
+    const response = await fetch(`https://mindguard-jd.onrender.com/${username}`);
+
+    const data = await response.json();
+
+    console.log(data);
+
+    const titleEl = document.querySelector('.s-title');
+    const scoreEl = document.querySelector('.sm-val');
+
+    if (titleEl) {
+      titleEl.innerText = data.message || 'Welcome back';
+    }
+
+    if (scoreEl) {
+      scoreEl.innerText = data.score || '74';
+    }
+
+  }
+
+  catch(error) {
+
+    console.error('Backend Error:', error);
+
+    const titleEl = document.querySelector('.s-title');
+
+    if (titleEl) {
+      titleEl.innerText = 'Backend Offline';
+    }
+  }
+}
+
+
 connectBackend();
-</script>
+  
+</script>          
 </body>
 </html>
